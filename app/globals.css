@@ -1,0 +1,95 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Kidloop brand tokens */
+  --color-ink: var(--ink);
+  --color-surface: var(--surface);
+  --color-pine: var(--pine);
+  --color-pine-foreground: var(--pine-foreground);
+  --color-pine-soft: var(--pine-soft);
+  --color-apricot: var(--apricot);
+  --color-apricot-foreground: var(--apricot-foreground);
+  --color-apricot-soft: var(--apricot-soft);
+  --color-lilac: var(--lilac);
+  --color-lilac-foreground: var(--lilac-foreground);
+  --color-lilac-soft: var(--lilac-soft);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-nunito), ui-sans-serif, system-ui, sans-serif;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 6px);
+  --radius-2xl: calc(var(--radius) + 12px);
+}
+
+:root {
+  color-scheme: light;
+  --radius: 1rem;
+
+  --background: #faf9f5;
+  --foreground: #292634;
+  --surface: #ffffff;
+  --ink: #292634;
+
+  --card: #ffffff;
+  --card-foreground: #292634;
+  --popover: #ffffff;
+  --popover-foreground: #292634;
+
+  --primary: #39775b;
+  --primary-foreground: #ffffff;
+  --secondary: #f3f0ea;
+  --secondary-foreground: #292634;
+  --muted: #f3f0ea;
+  --muted-foreground: #8b8494;
+  --accent: #f0f4f1;
+  --accent-foreground: #39775b;
+  --destructive: #d9553f;
+
+  --border: #e7e1d8;
+  --input: #e7e1d8;
+  --ring: #39775b;
+
+  --pine: #39775b;
+  --pine-foreground: #ffffff;
+  --pine-soft: #eef4f0;
+  --apricot: #ef9a3c;
+  --apricot-foreground: #ffffff;
+  --apricot-soft: #fdf1e2;
+  --lilac: #9b83d7;
+  --lilac-foreground: #ffffff;
+  --lilac-soft: #f2eefb;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: 'rlig' 1, 'calt' 1;
+  }
+}
