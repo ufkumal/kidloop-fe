@@ -61,6 +61,7 @@ Sözleşmede tanımlı olmayan hiçbir uç çağrılmaz.
 | Giriş | `POST /api/auth/login` |
 | E-posta doğrulama | `GET /api/auth/verify?token=...` |
 | Kimlik soruları | `GET /api/onboarding/identity-questions` |
+| Çocuk oluşturma | `POST /api/children` |
 | Güncel anket | `GET /api/children/{childId}/questionnaire/current` |
 | Cevap gönderme | `PUT /api/children/{childId}/questionnaire/answers/{questionCode}` |
 | Anketi tamamlama | `POST /api/children/{childId}/questionnaire/complete` |

@@ -15,6 +15,7 @@ import type {
 /**
  * Backend sözleşmesinde tanımlı uçlar:
  * - GET  /api/onboarding/identity-questions
+ * - POST /api/children   body: { fullName, birthDate }
  * - GET  /api/children/{childId}/questionnaire/current
  * - PUT  /api/children/{childId}/questionnaire/answers/{questionCode}   body: { optionCode }
  * - POST /api/children/{childId}/questionnaire/complete
@@ -68,34 +69,41 @@ export async function submitAnswer(
   return normalizeQuestionnaire(payload)
 }
 
-export const IDENTITY_CHILD_REFERENCE_MISSING =
-  'Kimlik bilgilerini kaydetmek için gereken çocuk referansı sunucudan gelmedi. Bu adım backend tarafında tamamlandığında otomatik olarak çalışacak.'
-
 /**
- * Kimlik adımı cevapları, sözleşmede tanımlı cevap ucu üzerinden gönderilir.
- * Yeni bir uç uydurulmaz: childId yalnızca identity-questions yanıtından okunur.
+ * Kimlik sorularındaki ad ve doğum tarihi cevaplarından çocuk profili oluşturur.
+ * Cevaplar soru kodlarıyla saklanır; alanların anlamı API'den gelen soru tipiyle
+ * belirlenir, böylece ekrandaki metne bağımlı kalınmaz.
  */
 export async function submitIdentityAnswers(input: {
   childId: string | null
   answers: IdentityAnswers
   questions: NormalizedQuestion[]
 }): Promise<IdentityResult> {
-  const { childId, answers, questions } = input
+  const { answers, questions } = input
 
-  if (!childId) {
-    throw new ApiError(IDENTITY_CHILD_REFERENCE_MISSING, 0)
+  const nameQuestion = questions.find((question) => question.type === 'TEXT')
+  const birthDateQuestion = questions.find((question) => question.type === 'DATE')
+  const fullName = nameQuestion ? answers[nameQuestion.code]?.trim() : ''
+  const birthDate = birthDateQuestion ? answers[birthDateQuestion.code]?.trim() : ''
+
+  if (!fullName || !birthDate) {
+    throw new ApiError('Çocuğun adı ve doğum tarihi eksiksiz girilmelidir.', 400)
   }
 
-  let latest: QuestionnaireState | null = null
-  for (const question of questions) {
-    const value = answers[question.code]
-    if (value === undefined || value === '') continue
-    latest = await submitAnswer(childId, question.code, value)
+  const payload = await apiRequest<unknown>('/api/children', {
+    method: 'POST',
+    auth: true,
+    body: { fullName, birthDate },
+  })
+  const childId = extractChildId(payload)
+
+  if (!childId) {
+    throw new ApiError('Çocuk profili oluşturuldu ancak sunucudan çocuk kimliği alınamadı.', 500)
   }
 
   return {
     childId,
-    childName: latest?.childName ?? null,
+    childName: extractChildName(payload) ?? fullName,
   }
 }
 
