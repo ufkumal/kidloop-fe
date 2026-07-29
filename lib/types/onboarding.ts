@@ -14,6 +14,7 @@ export type QuestionInputType =
 
 export interface QuestionOption {
   code: string
+  body: string
   label: string
   description?: string
 }
@@ -21,6 +22,7 @@ export interface QuestionOption {
 export interface NormalizedQuestion {
   /** Backend'in beklediği soru kodu */
   code: string
+  body: string
   title: string
   description?: string
   type: QuestionInputType

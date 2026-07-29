@@ -64,11 +64,13 @@ function inferType(code: string, title: string, hasOptions: boolean): QuestionIn
 function normalizeOption(raw: RawRecord, index: number): QuestionOption {
   const code =
     asString(pick(raw, ['optionCode', 'code', 'value', 'key', 'id'])) ?? `option-${index + 1}`
-  const label =
-    asString(pick(raw, ['label', 'title', 'text', 'displayName', 'name', 'optionText'])) ?? code
+  const body =
+    asString(pick(raw, ['body', 'label', 'title', 'text', 'displayName', 'name', 'optionText'])) ??
+    code
   return {
     code,
-    label,
+    body,
+    label: body,
     description: asString(pick(raw, ['description', 'hint', 'subtitle', 'helpText'])),
   }
 }
@@ -76,15 +78,16 @@ function normalizeOption(raw: RawRecord, index: number): QuestionOption {
 export function normalizeQuestion(raw: RawRecord, index: number): NormalizedQuestion {
   const code =
     asString(pick(raw, ['questionCode', 'code', 'key', 'name', 'id'])) ?? `question-${index + 1}`
-  const title =
-    asString(pick(raw, ['title', 'text', 'label', 'question', 'prompt', 'questionText'])) ?? code
+  const body =
+    asString(pick(raw, ['body', 'title', 'text', 'label', 'question', 'prompt', 'questionText'])) ??
+    code
 
   const optionSource = pick(raw, ['options', 'answerOptions', 'choices', 'values'])
   const options = asRecordArray(optionSource).map(normalizeOption)
 
   const rawType = asString(pick(raw, ['type', 'questionType', 'inputType', 'answerType', 'format']))
   const mapped = rawType ? TYPE_MAP[rawType.toUpperCase()] : undefined
-  const type: QuestionInputType = mapped ?? inferType(code, title, options.length > 0)
+  const type: QuestionInputType = mapped ?? inferType(code, body, options.length > 0)
 
   const requiredRaw = pick(raw, ['required', 'isRequired', 'mandatory'])
   const answered = pick(raw, ['answeredOptionCode', 'selectedOptionCode', 'answerOptionCode'])
@@ -92,7 +95,8 @@ export function normalizeQuestion(raw: RawRecord, index: number): NormalizedQues
 
   return {
     code,
-    title,
+    body,
+    title: body,
     description: asString(pick(raw, ['description', 'helpText', 'hint', 'subtitle', 'why'])),
     type,
     rawType: mapped ? undefined : rawType,
@@ -101,7 +105,12 @@ export function normalizeQuestion(raw: RawRecord, index: number): NormalizedQues
     options,
     answeredOptionCode: asString(answered) ?? null,
     answeredValue: asString(answeredValue) ?? null,
-    order: typeof raw.order === 'number' ? raw.order : undefined,
+    order:
+      typeof raw.displayOrder === 'number'
+        ? raw.displayOrder
+        : typeof raw.order === 'number'
+          ? raw.order
+          : undefined,
   }
 }
 
@@ -174,7 +183,7 @@ export function extractChildId(payload: unknown): string | null {
 export function extractChildName(payload: unknown): string | null {
   if (!payload || typeof payload !== 'object') return null
   const record = payload as RawRecord
-  const direct = asString(pick(record, ['childName', 'name', 'firstName']))
+  const direct = asString(pick(record, ['childName', 'fullName', 'name', 'firstName']))
   if (direct) return direct
   for (const key of ['child', 'data', 'result']) {
     const nested = record[key]
