@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
-import { MOCK_CHILD } from '@/lib/onboarding-data'
 
+/** Uygulamanın ilk ekranı giriş sayfasıdır. */
 export default function HomePage() {
-  redirect(`/onboarding/children/${MOCK_CHILD.id}/questions`)
+  redirect('/login')
 }

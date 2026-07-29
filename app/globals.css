@@ -3,93 +3,108 @@
 @import 'shadcn/tailwind.css';
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-border: var(--border);
-  --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
 
-  /* Kidloop brand tokens */
-  --color-ink: var(--ink);
-  --color-surface: var(--surface);
-  --color-pine: var(--pine);
-  --color-pine-foreground: var(--pine-foreground);
-  --color-pine-soft: var(--pine-soft);
-  --color-apricot: var(--apricot);
-  --color-apricot-foreground: var(--apricot-foreground);
-  --color-apricot-soft: var(--apricot-soft);
-  --color-lilac: var(--lilac);
-  --color-lilac-foreground: var(--lilac-foreground);
-  --color-lilac-soft: var(--lilac-soft);
+  /* Kidloop marka tonları */
+  --color-warm: var(--warm);
+  --color-warm-foreground: var(--warm-foreground);
+  --color-orange: var(--brand-orange);
+  --color-orange-foreground: var(--brand-orange-foreground);
+  --color-orange-soft: var(--brand-orange-soft);
+  --color-purple: var(--brand-purple);
+  --color-purple-foreground: var(--brand-purple-foreground);
+  --color-purple-soft: var(--brand-purple-soft);
+  --color-primary-soft: var(--primary-soft);
 
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-heading: var(--font-nunito), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Nunito', 'Nunito Fallback';
+  --font-heading: 'Baloo 2', 'Baloo 2 Fallback';
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 6px);
-  --radius-2xl: calc(var(--radius) + 12px);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+
+  --shadow-card: 0 1px 2px rgb(27 42 65 / 0.04), 0 12px 32px -12px rgb(27 42 65 / 0.1);
+  --shadow-soft: 0 1px 2px rgb(27 42 65 / 0.03), 0 6px 16px -10px rgb(27 42 65 / 0.08);
 }
 
 :root {
   color-scheme: light;
-  --radius: 1rem;
 
-  --background: #faf9f5;
-  --foreground: #292634;
-  --surface: #ffffff;
-  --ink: #292634;
+  --background: #faf7f2;
+  --foreground: #1b2a41;
 
   --card: #ffffff;
-  --card-foreground: #292634;
+  --card-foreground: #1b2a41;
+
   --popover: #ffffff;
-  --popover-foreground: #292634;
+  --popover-foreground: #1b2a41;
 
-  --primary: #39775b;
+  --primary: #3c8567;
   --primary-foreground: #ffffff;
-  --secondary: #f3f0ea;
-  --secondary-foreground: #292634;
-  --muted: #f3f0ea;
-  --muted-foreground: #8b8494;
-  --accent: #f0f4f1;
-  --accent-foreground: #39775b;
-  --destructive: #d9553f;
+  --primary-soft: #eaf3ef;
 
-  --border: #e7e1d8;
-  --input: #e7e1d8;
-  --ring: #39775b;
+  --secondary: #f2ece2;
+  --secondary-foreground: #1b2a41;
 
-  --pine: #39775b;
-  --pine-foreground: #ffffff;
-  --pine-soft: #eef4f0;
-  --apricot: #ef9a3c;
-  --apricot-foreground: #ffffff;
-  --apricot-soft: #fdf1e2;
-  --lilac: #9b83d7;
-  --lilac-foreground: #ffffff;
-  --lilac-soft: #f2eefb;
+  --muted: #f4efe6;
+  --muted-foreground: #6b7688;
+
+  --accent: #f2ece2;
+  --accent-foreground: #1b2a41;
+
+  --warm: #f6f0e6;
+  --warm-foreground: #57503f;
+
+  --brand-orange: #e07a3b;
+  --brand-orange-foreground: #ffffff;
+  --brand-orange-soft: #fcefe3;
+
+  --brand-purple: #7b6bd6;
+  --brand-purple-foreground: #ffffff;
+  --brand-purple-soft: #efedfb;
+
+  --destructive: #c0492f;
+  --destructive-foreground: #ffffff;
+
+  --border: #ebe2d4;
+  --input: #e2d8c8;
+  --ring: #3c8567;
+
+  --radius: 0.875rem;
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border outline-ring/40;
   }
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: 'rlig' 1, 'calt' 1;
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-heading;
   }
 }
