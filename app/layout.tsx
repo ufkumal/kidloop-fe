@@ -1,31 +1,26 @@
-import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
-import { Inter, Nunito } from 'next/font/google'
+import { Analytics } from '@vercel/analytics/next'
+import { Nunito, Baloo_2 } from 'next/font/google'
+import { AuthProvider } from '@/lib/auth/auth-context'
 import './globals.css'
 
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-inter',
-  display: 'swap',
-})
-
-const nunito = Nunito({
-  subsets: ['latin'],
-  variable: '--font-nunito',
-  weight: ['600', '700', '800'],
-  display: 'swap',
-})
+const _nunito = Nunito({ subsets: ['latin'] })
+const _baloo = Baloo_2({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Kidloop — Deniz\'i tanıyalım',
+  title: 'Kidloop — Çocuğuna uygun etkinlik önerileri',
   description:
-    'Kidloop, çocuğunuza özel aktivite önerileri sunmak için birkaç kısa soruyla onu daha yakından tanır.',
+    'Kidloop, çocuğunun yaşına ve ilgi alanlarına göre kişiselleştirilmiş etkinlik önerileri sunar.',
   generator: 'v0.app',
+  icons: {
+    icon: [{ url: '/icon.svg', type: 'image/svg+xml' }],
+    apple: '/apple-icon.png',
+  },
 }
 
 export const viewport: Viewport = {
   colorScheme: 'light',
-  themeColor: '#faf9f5',
+  themeColor: '#faf7f2',
 }
 
 export default function RootLayout({
@@ -34,9 +29,9 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="tr" className={`${inter.variable} ${nunito.variable} bg-background`}>
+    <html lang="tr" className="bg-background">
       <body className="font-sans antialiased">
-        {children}
+        <AuthProvider>{children}</AuthProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>
