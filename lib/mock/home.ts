@@ -9,10 +9,7 @@
  * lib/types/home.ts içindeki tiplere bağlıdır.
  */
 
-import type { EnjoymentLevel, HomeState, LastActivitySummary } from '@/lib/types/home'
-
-/** Geliştirme sırasında önizlenen başlangıç durumu. */
-export const MOCK_HOME_STATE: HomeState = 'returning-user'
+import type { EnjoymentLevel, LastActivitySummary } from '@/lib/types/home'
 
 export const MOCK_LAST_ACTIVITY: LastActivitySummary = {
   id: 'renk-avi',
