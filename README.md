@@ -35,6 +35,7 @@ app/                       Rotalar
   onboarding/identity/     Çocuk adı & doğum tarihi (dinamik sorular)
   onboarding/[childId]/questions/   Tek tek soru akışı
   onboarding/[childId]/complete/    Özet + tamamlama
+  onboarding/[childId]/consents/    İzinler + planı hazırlama
   plan-ready/              Demo günlük plan ekranı
 components/
   auth/                    AuthLayout, BrandPanel, AuthCard, SocialAuthButtons, formlar
@@ -66,6 +67,8 @@ Sözleşmede tanımlı olmayan hiçbir uç çağrılmaz.
 | Güncel anket | `GET /api/children/{childId}/questionnaire/current` |
 | Cevap gönderme | `PUT /api/children/{childId}/questionnaire/answers/{questionCode}` |
 | Anketi tamamlama | `POST /api/children/{childId}/questionnaire/complete` |
+| İzinleri listeleme | `GET /api/consents` |
+| İzin tercihi | `PUT /api/consents/{consentId}` |
 
 Şifre sıfırlama için backend ucu olmadığından `/forgot-password` yalnızca istemci
 tarafı doğrulama yapar ve bilgilendirme mesajı gösterir.

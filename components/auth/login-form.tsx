@@ -50,8 +50,8 @@ export function LoginForm() {
       signIn(session, remember)
 
       if (session.role === 'PARENT') {
-        // V2: mevcut çocuk varsa onboarding uygun adımdan devam edecek.
-        router.replace('/onboarding/identity')
+        // /home, backend'deki onboarding durumuna göre doğru karşılama ekranını açar.
+        router.replace('/home')
         return
       }
       setUnsupportedRole(true)
