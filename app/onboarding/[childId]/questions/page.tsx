@@ -11,10 +11,14 @@ export const metadata: Metadata = {
 
 export default async function QuestionnairePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ childId: string }>
+  searchParams: Promise<{ edit?: string | string[] }>
 }) {
   const { childId } = await params
+  const { edit } = await searchParams
+  const editQuestionCode = Array.isArray(edit) ? edit[0] : edit
 
   return (
     <ProtectedRoute
@@ -26,7 +30,7 @@ export default async function QuestionnairePage({
       }
     >
       <AppShell width="wide">
-        <QuestionnaireFlow childId={childId} />
+        <QuestionnaireFlow childId={childId} editQuestionCode={editQuestionCode} />
       </AppShell>
     </ProtectedRoute>
   )
