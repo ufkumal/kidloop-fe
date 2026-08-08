@@ -9,7 +9,7 @@ import { LoadingState } from '@/components/common/loading-state'
 import { SubmitButton } from '@/components/common/submit-button'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { completeQuestionnaire, fetchCurrentQuestionnaire } from '@/lib/api/onboarding'
+import { fetchCurrentQuestionnaire } from '@/lib/api/onboarding'
 import type { NormalizedQuestion, QuestionnaireState } from '@/lib/types/onboarding'
 
 function isAnswered(question: NormalizedQuestion) {
@@ -30,8 +30,6 @@ export function QuestionnaireComplete({ childId }: { childId: string }) {
   const [state, setState] = useState<QuestionnaireState | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<unknown>(null)
-  const [submitError, setSubmitError] = useState<unknown>(null)
-  const [pending, setPending] = useState(false)
   const [attempt, setAttempt] = useState(0)
 
   const questionsPath = `/onboarding/${encodeURIComponent(childId)}/questions`
@@ -55,19 +53,6 @@ export function QuestionnaireComplete({ childId }: { childId: string }) {
   }, [childId, attempt])
 
   const retry = useCallback(() => setAttempt((current) => current + 1), [])
-
-  async function handleComplete() {
-    setSubmitError(null)
-    setPending(true)
-    try {
-      await completeQuestionnaire(childId)
-      router.push('/plan-ready')
-    } catch (cause) {
-      setSubmitError(cause)
-    } finally {
-      setPending(false)
-    }
-  }
 
   if (loading) {
     return (
@@ -169,15 +154,11 @@ export function QuestionnaireComplete({ childId }: { childId: string }) {
             </div>
           ) : null}
 
-          <ApiErrorAlert error={submitError} title="Tamamlanamadı" />
-
           <SubmitButton
             type="button"
-            pending={pending}
-            pendingLabel="Planın hazırlanıyor…"
-            onClick={handleComplete}
+            onClick={() => router.push(`/onboarding/${encodeURIComponent(childId)}/consents`)}
           >
-            Planımı hazırla
+            İzinlere devam et
             <ArrowRight data-icon="inline-end" />
           </SubmitButton>
 
