@@ -15,7 +15,7 @@ import type {
 /**
  * Backend sözleşmesinde tanımlı uçlar:
  * - GET  /api/onboarding/identity-questions
- * - POST /api/children   body: { fullName, birthDate }
+ * - POST /api/children   body: identity question answers
  * - GET  /api/children/{childId}/questionnaire/current
  * - PUT  /api/children/{childId}/questionnaire/answers/{questionCode}   body: { optionCode }
  * - POST /api/children/{childId}/questionnaire/complete
@@ -70,9 +70,9 @@ export async function submitAnswer(
 }
 
 /**
- * Kimlik sorularındaki ad ve doğum tarihi cevaplarından çocuk profili oluşturur.
- * Cevaplar soru kodlarıyla saklanır; alanların anlamı API'den gelen soru tipiyle
- * belirlenir, böylece ekrandaki metne bağımlı kalınmaz.
+ * Kimlik sorularındaki cevaplardan çocuk profili oluşturur. Alan adları API'nin
+ * `answerKey` değeriyle belirlenir. Günlük süre sorusu halen `answerKey` olmadan
+ * döndüğü için bilinen soru kodu çocuk oluşturma alanına eşlenir.
  */
 export async function submitIdentityAnswers(input: {
   childId: string | null
@@ -81,19 +81,27 @@ export async function submitIdentityAnswers(input: {
 }): Promise<IdentityResult> {
   const { answers, questions } = input
 
-  const nameQuestion = questions.find((question) => question.type === 'TEXT')
-  const birthDateQuestion = questions.find((question) => question.type === 'DATE')
-  const fullName = nameQuestion ? answers[nameQuestion.code]?.trim() : ''
-  const birthDate = birthDateQuestion ? answers[birthDateQuestion.code]?.trim() : ''
+  const payloadBody: Record<string, string> = {}
 
-  if (!fullName || !birthDate) {
-    throw new ApiError('Çocuğun adı ve doğum tarihi eksiksiz girilmelidir.', 400)
+  for (const question of questions) {
+    const value = answers[question.code]?.trim()
+    if (!value) continue
+
+    const fieldName = question.answerKey ?? getIdentityPayloadField(question)
+    if (fieldName) payloadBody[fieldName] = value
+  }
+
+  const fullName = payloadBody.fullName ?? ''
+  const birthDate = payloadBody.birthDate ?? ''
+
+  if (!birthDate) {
+    throw new ApiError('Çocuğun doğum tarihi eksiksiz girilmelidir.', 400)
   }
 
   const payload = await apiRequest<unknown>('/api/children', {
     method: 'POST',
     auth: true,
-    body: { fullName, birthDate },
+    body: payloadBody,
   })
   const childId = extractChildId(payload)
 
@@ -103,8 +111,16 @@ export async function submitIdentityAnswers(input: {
 
   return {
     childId,
-    childName: extractChildName(payload) ?? fullName,
+    childName: extractChildName(payload) ?? (fullName || null),
   }
+}
+
+function getIdentityPayloadField(question: NormalizedQuestion): string | null {
+  if (question.code === 'Q7') return 'dailyTimeBudgetOptionCode'
+  if (question.code === 'Q8') return 'gender'
+  if (question.type === 'DATE') return 'birthDate'
+  if (question.type === 'TEXT') return 'fullName'
+  return null
 }
 
 export async function fetchCurrentQuestionnaire(

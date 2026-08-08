@@ -110,6 +110,7 @@ export function DynamicQuestionRenderer({
           value={value}
           onChange={(event) => onChange(event.target.value)}
           placeholder={question.placeholder}
+          maxLength={question.type === 'TEXT' ? (question.maxLength ?? undefined) : undefined}
           disabled={disabled}
           required={question.required}
           aria-invalid={error ? true : undefined}

@@ -29,6 +29,9 @@ export interface NormalizedQuestion {
   /** Normalize edilemeyen tipler için ham değer (fallback UI'da gösterilir) */
   rawType?: string
   required: boolean
+  /** POST /api/children payload field supplied by the identity-questions API. */
+  answerKey?: string | null
+  maxLength?: number | null
   placeholder?: string
   options: QuestionOption[]
   answeredOptionCode?: string | null
