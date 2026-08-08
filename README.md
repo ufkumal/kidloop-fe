@@ -7,9 +7,9 @@ Tüm arayüz metinleri Türkçedir.
 ## Kurulum
 
 ```bash
-pnpm install
+corepack pnpm install
 cp .env.example .env.local
-pnpm dev
+corepack pnpm dev
 ```
 
 Uygulama `http://localhost:3000` adresinde çalışır ve kök adres `/login` ekranına yönlenir.
@@ -17,11 +17,12 @@ Uygulama `http://localhost:3000` adresinde çalışır ve kök adres `/login` ek
 ### `.env.local`
 
 ```bash
-NEXT_PUBLIC_API_BASE_URL=https://kinloop-be.onrender.com
+API_BASE_URL=https://kinloop-be.onrender.com
 ```
 
-Backend adresi kod içinde sabitlenmez; yalnızca bu değişkenden okunur
-(`lib/api/client.ts`). Değişken tanımsızsa istekler aynı origin'e gider.
+Backend adresi kod içinde sabitlenmez. Tarayıcı istekleri same-origin
+`/api/backend` proxy'sine gider; gerçek backend adresini yalnızca sunucu tarafındaki
+`app/api/backend/[...path]/route.ts` bu değişkenden okur.
 
 ## Klasör yapısı
 
@@ -111,12 +112,12 @@ depoya gönderilmez.
 
 1. Vercel'de **New Project** → GitHub deposunu içe aktar.
 2. Framework otomatik olarak Next.js algılanır; ek yapılandırma gerekmez.
-3. **Settings → Environment Variables** bölümüne `NEXT_PUBLIC_API_BASE_URL` değerini
+3. **Settings → Environment Variables** bölümüne `API_BASE_URL` değerini
    Production, Preview ve Development ortamları için ekle.
 4. **Deploy**. Sonraki her `main` push'u production, diğer dallar preview dağıtımı üretir.
 
-> `NEXT_PUBLIC_` ön eki derleme zamanında gömülür; değeri değiştirdikten sonra
-> yeniden dağıtım gerekir.
+> `API_BASE_URL` yalnızca sunucu tarafında okunur. Değeri değiştirdikten sonra
+> uygulamayı yeniden başlatmak veya Vercel deployment'ını yeniden oluşturmak gerekir.
 
 ## Komutlar
 

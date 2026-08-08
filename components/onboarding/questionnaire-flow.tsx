@@ -15,8 +15,16 @@ import { useAuth } from '@/lib/auth/auth-context'
 import type { NormalizedQuestion, QuestionnaireState } from '@/lib/types/onboarding'
 
 /** Gösterilecek soruyu nextQuestionCode üzerinden, yoksa ilk yanıtsız sorudan seçer. */
-function resolveCurrentQuestion(state: QuestionnaireState | null): NormalizedQuestion | null {
+function resolveCurrentQuestion(
+  state: QuestionnaireState | null,
+  editQuestionCode: string | null,
+): NormalizedQuestion | null {
   if (!state) return null
+
+  if (editQuestionCode) {
+    const questionToEdit = state.questions.find((question) => question.code === editQuestionCode)
+    if (questionToEdit) return questionToEdit
+  }
 
   if (state.nextQuestionCode) {
     const matched = state.questions.find((question) => question.code === state.nextQuestionCode)
@@ -29,7 +37,13 @@ function resolveCurrentQuestion(state: QuestionnaireState | null): NormalizedQue
   )
 }
 
-export function QuestionnaireFlow({ childId }: { childId: string }) {
+export function QuestionnaireFlow({
+  childId,
+  editQuestionCode = null,
+}: {
+  childId: string
+  editQuestionCode?: string | null
+}) {
   const router = useRouter()
   const { activeChild, setActiveChild } = useAuth()
 
@@ -63,7 +77,13 @@ export function QuestionnaireFlow({ childId }: { childId: string }) {
     return () => controller.abort()
   }, [childId, attempt])
 
-  const currentQuestion = useMemo(() => resolveCurrentQuestion(state), [state])
+  const currentQuestion = useMemo(
+    () => resolveCurrentQuestion(state, editQuestionCode),
+    [state, editQuestionCode],
+  )
+  const isEditing = Boolean(
+    editQuestionCode && state?.questions.some((question) => question.code === editQuestionCode),
+  )
 
   // Mevcut cevap varsa alanı önceden doldur (answeredOptionCode'a saygı).
   useEffect(() => {
@@ -118,6 +138,9 @@ export function QuestionnaireFlow({ childId }: { childId: string }) {
       // Yanıt sonrası dönen güncel durum yerel veriyi tamamen değiştirir.
       const updated = await submitAnswer(childId, currentQuestion.code, value.trim())
       setState(updated)
+      if (isEditing) {
+        router.push(completePath)
+      }
     } catch (cause) {
       setSubmitError(cause)
     } finally {
@@ -133,10 +156,12 @@ export function QuestionnaireFlow({ childId }: { childId: string }) {
       <div className="flex flex-col gap-6">
         <header className="flex flex-col gap-2">
           <span className="text-xs font-semibold tracking-wide text-primary uppercase">
-            Çocuğunu tanıyalım
+            {isEditing ? 'Cevabını düzenle' : 'Çocuğunu tanıyalım'}
           </span>
           <h1 className="text-balance text-2xl font-bold sm:text-3xl">
-            Birkaç kısa soruyla önerileri kişiselleştirelim
+            {isEditing
+              ? 'Seçimini güncelle ve cevaplarına geri dön'
+              : 'Birkaç kısa soruyla önerileri kişiselleştirelim'}
           </h1>
         </header>
 
@@ -174,7 +199,7 @@ export function QuestionnaireFlow({ childId }: { childId: string }) {
                 <ApiErrorAlert error={submitError} title="Cevap kaydedilemedi" />
 
                 <SubmitButton pending={pending} pendingLabel="Kaydediliyor…">
-                  Devam et
+                  {isEditing ? 'Değişikliği kaydet' : 'Devam et'}
                   <ArrowRight data-icon="inline-end" />
                 </SubmitButton>
               </form>

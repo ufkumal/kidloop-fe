@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowRight, Check, CircleCheck } from 'lucide-react'
+import { ArrowRight, Check, ChevronRight, CircleCheck } from 'lucide-react'
 import { QuestionProgress } from '@/components/onboarding/question-progress'
 import { ApiErrorAlert } from '@/components/common/api-error-alert'
 import { LoadingState } from '@/components/common/loading-state'
@@ -10,11 +10,18 @@ import { SubmitButton } from '@/components/common/submit-button'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { completeQuestionnaire, fetchCurrentQuestionnaire } from '@/lib/api/onboarding'
-import { ACTION_BUTTON_CLASS } from '@/lib/ui'
 import type { NormalizedQuestion, QuestionnaireState } from '@/lib/types/onboarding'
 
 function isAnswered(question: NormalizedQuestion) {
   return Boolean(question.answeredOptionCode ?? question.answeredValue)
+}
+
+function getAnswerLabel(question: NormalizedQuestion) {
+  const answer = question.answeredOptionCode ?? question.answeredValue
+  if (!answer) return 'Cevap görünmüyor'
+
+  const selectedOption = question.options.find((option) => option.code === answer)
+  return selectedOption?.label ?? answer
 }
 
 export function QuestionnaireComplete({ childId }: { childId: string }) {
@@ -107,17 +114,34 @@ export function QuestionnaireComplete({ childId }: { childId: string }) {
           {answered.length > 0 ? (
             <ul className="flex flex-col gap-3">
               {answered.map((question) => (
-                <li
-                  key={question.code}
-                  className="flex items-start gap-3 rounded-2xl border border-border bg-warm/50 px-4 py-3"
-                >
-                  <span
-                    aria-hidden="true"
-                    className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"
+                <li key={question.code}>
+                  <button
+                    type="button"
+                    className="group flex w-full items-start gap-3 rounded-2xl border border-border bg-warm/50 px-4 py-3 text-left transition-colors hover:border-primary/40 hover:bg-primary-soft/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    onClick={() =>
+                      router.push(`${questionsPath}?edit=${encodeURIComponent(question.code)}`)
+                    }
+                    aria-label={`${question.title} cevabını düzenle`}
                   >
-                    <Check className="size-3" />
-                  </span>
-                  <span className="text-sm leading-relaxed text-foreground">{question.title}</span>
+                    <span
+                      aria-hidden="true"
+                      className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"
+                    >
+                      <Check className="size-3" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm leading-relaxed text-foreground">
+                        {question.title}
+                      </span>
+                      <span className="mt-1 block text-sm font-semibold leading-relaxed text-primary">
+                        {getAnswerLabel(question)}
+                      </span>
+                    </span>
+                    <ChevronRight
+                      aria-hidden="true"
+                      className="mt-2 size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary"
+                    />
+                  </button>
                 </li>
               ))}
             </ul>
@@ -157,14 +181,9 @@ export function QuestionnaireComplete({ childId }: { childId: string }) {
             <ArrowRight data-icon="inline-end" />
           </SubmitButton>
 
-          <Button
-            type="button"
-            variant="ghost"
-            className={ACTION_BUTTON_CLASS}
-            onClick={() => router.push(questionsPath)}
-          >
-            Cevaplarımı düzenle
-          </Button>
+          <p className="text-center text-sm leading-relaxed text-muted-foreground">
+            Düzenlemek istediğin cevabın üzerine dokunabilirsin.
+          </p>
         </CardContent>
       </Card>
     </div>
