@@ -101,6 +101,8 @@ export function normalizeQuestion(raw: RawRecord, index: number): NormalizedQues
     type,
     rawType: mapped ? undefined : rawType,
     required: requiredRaw === undefined ? true : Boolean(requiredRaw),
+    answerKey: asString(raw.answerKey) ?? null,
+    maxLength: typeof raw.maxLength === 'number' ? raw.maxLength : null,
     placeholder: asString(pick(raw, ['placeholder', 'example'])),
     options,
     answeredOptionCode: asString(answered) ?? null,
