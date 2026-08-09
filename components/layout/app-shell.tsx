@@ -1,6 +1,7 @@
 'use client'
 
-import { LogOut } from 'lucide-react'
+import Link from 'next/link'
+import { CircleUserRound, LogOut } from 'lucide-react'
 import { KidloopLogo } from '@/components/brand/kidloop-logo'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/lib/auth/auth-context'
@@ -25,11 +26,31 @@ export function AppShell({ children, width = 'default' }: AppShellProps) {
           )}
         >
           <KidloopLogo />
-          <Button type="button" variant="ghost" size="sm" onClick={signOut}>
-            <LogOut data-icon="inline-start" />
-            <span className="hidden sm:inline">Çıkış yap</span>
-            <span className="sr-only sm:hidden">Çıkış yap</span>
-          </Button>
+
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-11 px-3"
+              nativeButton={false}
+              render={<Link href="/profile" aria-label="Profili aç" />}
+            >
+              <CircleUserRound data-icon="inline-start" />
+              <span className="hidden sm:inline">Profil</span>
+            </Button>
+
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-11 px-3"
+              onClick={signOut}
+            >
+              <LogOut data-icon="inline-start" />
+              <span className="hidden sm:inline">Çıkış yap</span>
+              <span className="sr-only sm:hidden">Çıkış yap</span>
+            </Button>
+          </div>
         </div>
       </header>
 
