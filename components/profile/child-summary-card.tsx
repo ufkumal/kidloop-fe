@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { CalendarDays, Pencil } from 'lucide-react'
 import { ProfileAvatar } from '@/components/profile/profile-avatar'
 import { Badge } from '@/components/ui/badge'
@@ -45,8 +46,14 @@ export function ChildSummaryCard({ child }: { child: ChildProfileSummary }) {
           </div>
         </div>
 
-        {/* TODO(entegrasyon): çocuk profili düzenleme ekranına bağlanacak. */}
-        <Button type="button" variant="secondary" size="sm" className="h-11 shrink-0 rounded-xl px-4">
+        {/* Ayrı bir düzenleme ekranı yok; mevcut onboarding kimlik adımı kullanılır. */}
+        <Button
+          variant="secondary"
+          size="sm"
+          className="h-11 shrink-0 rounded-xl px-4"
+          nativeButton={false}
+          render={<Link href="/onboarding/identity" />}
+        >
           <Pencil data-icon="inline-start" />
           Profili düzenle
         </Button>

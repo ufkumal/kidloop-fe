@@ -26,7 +26,8 @@ export const MOCK_CHILDREN: ChildProfile[] = [
     summary: {
       childId: 'child-deniz',
       name: 'Deniz',
-      avatarUrl: '/placeholder-user.jpg',
+      // Fotoğraf yükleme özelliği henüz yok; baş harf gösterilir.
+      avatarUrl: null,
       ageLabel: '5 yaş',
       birthDateLabel: '12 Mart 2021',
       highlights: ['5 yaş', 'Hareketli oyunları seviyor', 'Ev içi etkinlikler'],
