@@ -10,3 +10,17 @@ export async function fetchTodayDailyPlan(
     { auth: true, signal },
   )
 }
+
+export async function selectTodayActivity(
+  childId: string,
+  activityId: number,
+): Promise<DailyPlan> {
+  return apiRequest<DailyPlan>(
+    `/api/children/${encodeURIComponent(childId)}/daily-plan/today/selection`,
+    {
+      method: 'POST',
+      auth: true,
+      body: { activityId },
+    },
+  )
+}
