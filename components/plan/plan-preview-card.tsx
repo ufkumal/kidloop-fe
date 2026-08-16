@@ -27,7 +27,7 @@ const TONES = [
 const SLOT_LABELS: Record<string, string> = {
   STRENGTHEN: 'Pekiştirme',
   DEVELOP: 'Gelişim',
-  EXPLORE: 'Keşfet',
+  EXPLORE: 'Keşif',
 }
 
 function slotLabel(slotType: string) {
