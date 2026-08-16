@@ -1,38 +1,38 @@
 'use client'
 
 import { Check, Meh, Smile, ThumbsDown } from 'lucide-react'
-import { ENJOYMENT_OPTIONS } from '@/lib/mock/home'
-import type { EnjoymentLevel } from '@/lib/types/home'
+import type { FeedbackQuestion } from '@/lib/types/home'
 import { cn } from '@/lib/utils'
 
-const OPTION_ICON = {
-  loved: Smile,
-  somewhat: Meh,
-  not_interested: ThumbsDown,
-} as const
+const OPTION_ICONS = [Smile, Meh, ThumbsDown] as const
 
 interface EnjoymentSelectorProps {
-  value: EnjoymentLevel | null
-  onChange: (value: EnjoymentLevel | null) => void
+  question: FeedbackQuestion
+  value: string | null
+  onChange: (value: string | null) => void
   disabled?: boolean
 }
 
-export function EnjoymentSelector({ value, onChange, disabled }: EnjoymentSelectorProps) {
+export function EnjoymentSelector({ question, value, onChange, disabled }: EnjoymentSelectorProps) {
   return (
     <fieldset className="flex flex-col gap-3" disabled={disabled}>
       <legend className="text-sm font-semibold leading-relaxed text-foreground">
-        Çocuğun etkinlikten keyif aldı mı?
+        {question.body}
+        {question.required ? <span className="text-destructive"> *</span> : null}
       </legend>
+      {question.helperText ? (
+        <p className="text-sm leading-relaxed text-muted-foreground">{question.helperText}</p>
+      ) : null}
 
       <div className="grid gap-2.5 sm:grid-cols-3">
-        {ENJOYMENT_OPTIONS.map((option) => {
-          const Icon = OPTION_ICON[option.value]
-          const selected = value === option.value
-          const inputId = `enjoyment-${option.value}`
+        {question.options.map((option, index) => {
+          const Icon = OPTION_ICONS[index] ?? Smile
+          const selected = value === option.code
+          const inputId = `${question.code}-${option.code}`
 
           return (
             <label
-              key={option.value}
+              key={option.code}
               htmlFor={inputId}
               className={cn(
                 'flex cursor-pointer items-center gap-3 rounded-2xl border bg-card px-4 py-3.5 text-left shadow-soft transition-colors',
@@ -45,11 +45,11 @@ export function EnjoymentSelector({ value, onChange, disabled }: EnjoymentSelect
               <input
                 id={inputId}
                 type="radio"
-                name="enjoyment"
-                value={option.value}
+                name={question.code}
+                value={option.code}
                 checked={selected}
                 disabled={disabled}
-                onChange={() => onChange(option.value)}
+                onChange={() => onChange(option.code)}
                 className="sr-only"
               />
               <span

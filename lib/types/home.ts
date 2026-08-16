@@ -8,22 +8,41 @@
 /** Ebeveynin onboarding'i tamamlayıp tamamlamadığını temsil eder. */
 export type HomeState = 'new-user' | 'returning-user'
 
-/** Çocuğun etkinlikten ne kadar keyif aldığı. */
-export type EnjoymentLevel = 'loved' | 'somewhat' | 'not_interested'
-
-/** Ana sayfada gösterilen "son etkinlik" özeti. */
-export interface LastActivitySummary {
-  id: string
+/** `/api/home/status` yanıtındaki seçili son etkinlik. */
+export interface LatestActivity {
+  dailyPlanItemId: number
+  activityId: number
   title: string
-  /** Örn. "15 dakika" */
-  duration: string
-  /** Örn. "Ev içi" */
-  place: string
-  /** Örn. "Dikkat & eşleştirme" */
-  skill: string
-  /** Örn. "Dün" — backend hazır olduğunda tarih formatlanarak gelecek. */
-  completedLabel: string
-  tone: 'primary' | 'orange' | 'purple'
+  /** ISO 8601 */
+  selectedAt: string
+}
+
+export type HomeStatus =
+  | { state: 'new-user' }
+  | {
+      state: 'returning-user'
+      childId: number
+      childName: string
+      latestActivity: LatestActivity
+    }
+
+export type FeedbackQuestionType = 'SINGLE_CHOICE' | 'MULTI_CHOICE' | 'FREE_TEXT'
+
+export interface FeedbackQuestionOption {
+  code: string
+  label: string
+  displayOrder: number
+}
+
+export interface FeedbackQuestion {
+  code: string
+  body: string
+  helperText: string | null
+  type: FeedbackQuestionType
+  required: boolean
+  displayOrder: number
+  maxLength: number | null
+  options: FeedbackQuestionOption[]
 }
 
 /** Ebeveynin ses kaydı (şimdilik yalnızca tarayıcı içinde tutulur). */
@@ -34,9 +53,9 @@ export interface VoiceRecordingPayload {
 
 /** Backend ve AI ajanına gönderilecek geri bildirim gövdesi. */
 export interface ActivityFeedback {
-  activityId: string
-  childId?: string
-  enjoyment?: EnjoymentLevel
+  activityId: number
+  childId?: number
+  enjoyment?: string
   tags: string[]
   text?: string
   voiceRecording?: VoiceRecordingPayload

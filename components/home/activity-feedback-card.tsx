@@ -16,39 +16,71 @@ import {
   hasMeaningfulFeedback,
   submitActivityFeedback,
 } from '@/lib/api/feedback'
-import type { EnjoymentLevel, LastActivitySummary, VoiceRecordingPayload } from '@/lib/types/home'
+import type { FeedbackQuestion, LatestActivity, VoiceRecordingPayload } from '@/lib/types/home'
 
 interface ActivityFeedbackCardProps {
-  activity: LastActivitySummary
-  childId?: string | null
-  childName?: string | null
+  activity: LatestActivity
+  childId: number
+  childName: string
+  questions: FeedbackQuestion[]
 }
 
 export function ActivityFeedbackCard({
   activity,
   childId,
   childName,
+  questions,
 }: ActivityFeedbackCardProps) {
-  const [enjoyment, setEnjoyment] = useState<EnjoymentLevel | null>(null)
-  const [tags, setTags] = useState<string[]>([])
-  const [text, setText] = useState('')
+  const [answers, setAnswers] = useState<Record<string, string | string[]>>({})
   const [voiceRecording, setVoiceRecording] = useState<VoiceRecordingPayload | null>(null)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<unknown>(null)
   const [submitted, setSubmitted] = useState(false)
 
-  const canSubmit = hasMeaningfulFeedback({ enjoyment, tags, text, voiceRecording })
+  const singleChoiceQuestion = questions.find((question) => question.type === 'SINGLE_CHOICE')
+  const multiChoiceQuestion = questions.find((question) => question.type === 'MULTI_CHOICE')
+  const freeTextQuestion = questions.find((question) => question.type === 'FREE_TEXT')
+  const enjoyment = singleChoiceQuestion
+    ? (answers[singleChoiceQuestion.code] as string | undefined) ?? null
+    : null
+  const tags = multiChoiceQuestion
+    ? (answers[multiChoiceQuestion.code] as string[] | undefined) ?? []
+    : []
+  const text = freeTextQuestion
+    ? (answers[freeTextQuestion.code] as string | undefined) ?? ''
+    : ''
 
-  function toggleTag(tag: string) {
-    setTags((current) =>
-      current.includes(tag) ? current.filter((item) => item !== tag) : [...current, tag],
-    )
+  const requiredQuestionsAnswered = questions.every((question) => {
+    if (!question.required) return true
+    const answer = answers[question.code]
+    if (question.type === 'MULTI_CHOICE') return Array.isArray(answer) && answer.length > 0
+    if (question.type === 'FREE_TEXT') {
+      return (typeof answer === 'string' && answer.trim().length > 0) || Boolean(voiceRecording)
+    }
+    return typeof answer === 'string' && answer.length > 0
+  })
+  const canSubmit =
+    requiredQuestionsAnswered &&
+    hasMeaningfulFeedback({ enjoyment, tags, text, voiceRecording })
+
+  function setSingleChoice(questionCode: string, value: string | null) {
+    setAnswers((current) => ({ ...current, [questionCode]: value ?? '' }))
+  }
+
+  function toggleOption(questionCode: string, optionCode: string) {
+    setAnswers((current) => {
+      const selected = (current[questionCode] as string[] | undefined) ?? []
+      return {
+        ...current,
+        [questionCode]: selected.includes(optionCode)
+          ? selected.filter((item) => item !== optionCode)
+          : [...selected, optionCode],
+      }
+    })
   }
 
   function resetForm() {
-    setEnjoyment(null)
-    setTags([])
-    setText('')
+    setAnswers({})
     setVoiceRecording(null)
     setSubmitted(false)
   }
@@ -62,7 +94,7 @@ export function ActivityFeedbackCard({
     try {
       await submitActivityFeedback(
         buildActivityFeedback({
-          activityId: activity.id,
+          activityId: activity.activityId,
           childId,
           enjoyment,
           tags,
@@ -85,35 +117,75 @@ export function ActivityFeedbackCard({
           <FeedbackSuccessState childName={childName} onStay={resetForm} />
         ) : (
           <form onSubmit={handleSubmit} className="flex flex-col gap-7">
-            <EnjoymentSelector value={enjoyment} onChange={setEnjoyment} disabled={pending} />
+            {questions.map((question, index) => (
+              <div key={question.code} className="contents">
+                {index > 0 ? <Separator /> : null}
 
-            <FeedbackTagSelector selected={tags} onToggle={toggleTag} disabled={pending} />
+                {question.type === 'SINGLE_CHOICE' ? (
+                  <EnjoymentSelector
+                    question={question}
+                    value={(answers[question.code] as string | undefined) ?? null}
+                    onChange={(value) => setSingleChoice(question.code, value)}
+                    disabled={pending}
+                  />
+                ) : null}
 
-            <Separator />
+                {question.type === 'MULTI_CHOICE' ? (
+                  <FeedbackTagSelector
+                    question={question}
+                    selected={(answers[question.code] as string[] | undefined) ?? []}
+                    onToggle={(optionCode) => toggleOption(question.code, optionCode)}
+                    disabled={pending}
+                  />
+                ) : null}
 
-            <VoiceFeedbackRecorder
-              recording={voiceRecording}
-              onRecordingChange={setVoiceRecording}
-              disabled={pending}
-            />
+                {question.type === 'FREE_TEXT' ? (
+                  <div className="flex flex-col gap-5">
+                    <div className="flex flex-col gap-2.5">
+                      <label
+                        htmlFor={`feedback-${question.code}`}
+                        className="text-sm font-semibold leading-relaxed text-foreground"
+                      >
+                        {question.body}
+                        {question.required ? <span className="text-destructive"> *</span> : null}
+                      </label>
+                      {question.helperText ? (
+                        <p className="text-sm leading-relaxed text-muted-foreground">
+                          {question.helperText}
+                        </p>
+                      ) : null}
+                      <Textarea
+                        id={`feedback-${question.code}`}
+                        value={(answers[question.code] as string | undefined) ?? ''}
+                        disabled={pending}
+                        maxLength={question.maxLength ?? undefined}
+                        onChange={(event) =>
+                          setAnswers((current) => ({
+                            ...current,
+                            [question.code]: event.target.value,
+                          }))
+                        }
+                        rows={5}
+                        className="min-h-32 rounded-2xl border-input bg-card px-4 py-3 leading-relaxed"
+                        placeholder="Deneyiminizi buraya yazabilirsiniz…"
+                      />
+                      {question.maxLength ? (
+                        <span className="self-end text-xs tabular-nums text-muted-foreground">
+                          {((answers[question.code] as string | undefined) ?? '').length}/
+                          {question.maxLength}
+                        </span>
+                      ) : null}
+                    </div>
 
-            <div className="flex flex-col gap-2.5">
-              <label
-                htmlFor="feedback-text"
-                className="text-sm font-semibold leading-relaxed text-foreground"
-              >
-                Yazarak paylaş
-              </label>
-              <Textarea
-                id="feedback-text"
-                value={text}
-                disabled={pending}
-                onChange={(event) => setText(event.target.value)}
-                rows={5}
-                className="min-h-32 rounded-2xl border-input bg-card px-4 py-3 leading-relaxed"
-                placeholder="Örneğin: İlk başta biraz çekindi ama renkleri aramaya başlayınca çok eğlendi. Özellikle kırmızı nesneleri bulmayı sevdi…"
-              />
-            </div>
+                    <VoiceFeedbackRecorder
+                      recording={voiceRecording}
+                      onRecordingChange={setVoiceRecording}
+                      disabled={pending}
+                    />
+                  </div>
+                ) : null}
+              </div>
+            ))}
 
             <ApiErrorAlert error={error} title="Geri bildirim gönderilemedi" />
 
@@ -129,7 +201,7 @@ export function ActivityFeedbackCard({
               </SubmitButton>
               {!canSubmit ? (
                 <p className="text-sm leading-relaxed text-muted-foreground">
-                  Göndermek için bir tepki seç, etiket ekle, kısaca yaz veya sesli anlat.
+                  Zorunlu soruları yanıtlayarak geri bildirimi gönderebilirsin.
                 </p>
               ) : null}
             </div>
