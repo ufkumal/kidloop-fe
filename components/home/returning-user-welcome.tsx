@@ -1,18 +1,20 @@
 import { Sparkles } from 'lucide-react'
 import { ActivityFeedbackCard } from '@/components/home/activity-feedback-card'
 import { LastActivityCard } from '@/components/home/last-activity-card'
-import type { LastActivitySummary } from '@/lib/types/home'
+import type { FeedbackQuestion, LatestActivity } from '@/lib/types/home'
 
 interface ReturningUserWelcomeProps {
-  activity: LastActivitySummary
-  childId?: string | null
-  childName?: string | null
+  activity: LatestActivity
+  childId: number
+  childName: string
+  questions: FeedbackQuestion[]
 }
 
 export function ReturningUserWelcome({
   activity,
   childId,
   childName,
+  questions,
 }: ReturningUserWelcomeProps) {
   return (
     <div className="flex flex-col gap-8">
@@ -40,7 +42,12 @@ export function ReturningUserWelcome({
         <h2 id="feedback-heading" className="font-heading text-xl font-bold">
           Geri bildirimin
         </h2>
-        <ActivityFeedbackCard activity={activity} childId={childId} childName={childName} />
+        <ActivityFeedbackCard
+          activity={activity}
+          childId={childId}
+          childName={childName}
+          questions={questions}
+        />
       </section>
     </div>
   )
