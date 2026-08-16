@@ -13,6 +13,8 @@ export interface DailyPlanActivity {
   easierVariation: string
   harderVariation: string
   observationTip: string
+  /** Etkinlik ebeveyn tarafından bugünün planından seçildiğinde true. */
+  selected?: boolean
 }
 
 export interface DailyPlan {

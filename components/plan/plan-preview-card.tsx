@@ -1,4 +1,10 @@
+'use client'
+
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { ArrowRight, Clock, Eye, Gauge, Sparkles, Target } from 'lucide-react'
+import { ApiErrorAlert } from '@/components/common/api-error-alert'
+import { SubmitButton } from '@/components/common/submit-button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -8,6 +14,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import { selectTodayActivity } from '@/lib/api/daily-plan'
 import type { DailyPlanActivity } from '@/lib/types/daily-plan'
 import { cn } from '@/lib/utils'
 
@@ -20,6 +27,7 @@ const TONES = [
 const SLOT_LABELS: Record<string, string> = {
   STRENGTHEN: 'Pekiştirme',
   DEVELOP: 'Gelişim',
+  EXPLORE: 'Keşfet',
 }
 
 function slotLabel(slotType: string) {
@@ -51,11 +59,30 @@ function DetailSection({
 export function PlanPreviewCard({
   activity,
   index,
+  childId,
 }: {
   activity: DailyPlanActivity
   index: number
+  childId: string
 }) {
+  const router = useRouter()
   const tone = TONES[index % TONES.length]
+  const [pending, setPending] = useState(false)
+  const [selectionError, setSelectionError] = useState<unknown>(null)
+
+  async function handleSelect() {
+    if (pending) return
+    setPending(true)
+    setSelectionError(null)
+
+    try {
+      await selectTodayActivity(childId, activity.activityId)
+      router.push('/activity-selected')
+    } catch (cause) {
+      setSelectionError(cause)
+      setPending(false)
+    }
+  }
 
   return (
     <Dialog>
@@ -131,6 +158,23 @@ export function PlanPreviewCard({
           <DetailSection icon={<Eye className="size-4" />} title="Gözlem ipucu">
             {activity.observationTip}
           </DetailSection>
+
+          <div className="flex flex-col gap-3 border-t border-border pt-5">
+            <ApiErrorAlert error={selectionError} title="Etkinlik seçilemedi" />
+            <SubmitButton
+              type="button"
+              pending={pending}
+              pendingLabel="Etkinlik seçiliyor…"
+              className="w-full sm:w-fit sm:px-6"
+              onClick={handleSelect}
+            >
+              Bu etkinliği seç
+              <ArrowRight data-icon="inline-end" />
+            </SubmitButton>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Seçtikten sonra etkinlik için hazırlık ekranına geçeceksin.
+            </p>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
