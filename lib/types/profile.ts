@@ -1,10 +1,4 @@
-/**
- * Profil merkezi tipleri.
- *
- * Bileşenler yalnızca bu tiplere bağlıdır; veri kaynağı şu an
- * lib/mock/profile.ts içindeki geçici örnek veridir. Backend hazır
- * olduğunda mock dosyası kaldırılıp aynı tipler API yanıtlarına bağlanır.
- */
+/** Profil merkezinin API yanıtlarından normalize edilen görünüm tipleri. */
 
 /** Etkinlik kartlarındaki yumuşak renk yüzeyi. */
 export type ProfileTone = 'primary' | 'orange' | 'purple'
@@ -34,7 +28,7 @@ export interface SuggestedActivity {
   title: string
   description: string
   duration: string
-  place: string
+  involvement: string
   skill: string
   suggestedAtLabel: string
   status: SuggestedActivityStatus
@@ -44,31 +38,39 @@ export interface SuggestedActivity {
 export interface ChildProfile {
   summary: ChildProfileSummary
   onboardingAnswers: OnboardingAnswer[]
-  suggestedActivities: SuggestedActivity[]
 }
 
 export interface ParentProfile {
-  firstName: string
-  lastName: string
+  fullName: string
   email: string
   /** Telefon eklenmemiş hesaplarda boş string kalır. */
   phone: string
+  city: string
+  district: string
   avatarUrl?: string | null
 }
 
-/** Dakika cinsinden günlük zaman bütçesi; 'custom' özel süre girişini açar. */
-export type TimeBudgetValue = '15' | '30' | '45' | '60' | 'custom'
-
-export interface ConsentPreference {
-  consentId: number
-  /** Mevcut backend consent tipleriyle hizalı. */
-  type: 'TERMS' | 'PRIVACY' | 'KVKK' | 'DATA_PROCESSING' | 'MARKETING'
-  title: string
-  summary: string
-  required: boolean
-  granted: boolean
-  version: string
+export interface DailyTimeBudgetOption {
+  code: string
+  label: string
+  displayOrder: number
+  minutes: number
 }
 
-/** İzin listesinin yüklenme durumu; kart bu duruma göre iskelet/boş/hata gösterir. */
-export type ConsentsStatus = 'loading' | 'ready' | 'empty' | 'error'
+export interface DailyTimeBudget {
+  questionCode: string
+  question: string
+  selectedOptionCode: string | null
+  dailyTimeBudgetMinutes: number | null
+  options: DailyTimeBudgetOption[]
+}
+
+export interface DailyTimeBudgetUpdate {
+  answeredOptionCode: string
+  dailyTimeBudgetMinutes: number
+}
+
+export interface ProfileData {
+  parent: ParentProfile
+  children: ChildProfile[]
+}

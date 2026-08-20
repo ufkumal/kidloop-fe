@@ -1,4 +1,4 @@
-import { CalendarCheck, Clock, MapPin, Sparkles } from 'lucide-react'
+import { CalendarCheck, Clock, Sparkles, UsersRound } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import type { ProfileTone, SuggestedActivity } from '@/lib/types/profile'
@@ -53,8 +53,8 @@ export function SuggestedActivityCard({ activity }: { activity: SuggestedActivit
             {activity.duration}
           </span>
           <span className="flex items-center gap-1.5">
-            <MapPin className="size-4" aria-hidden="true" />
-            {activity.place}
+            <UsersRound className="size-4" aria-hidden="true" />
+            {activity.involvement}
           </span>
           <span className="flex items-center gap-1.5">
             <CalendarCheck className="size-4" aria-hidden="true" />

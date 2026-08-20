@@ -113,7 +113,7 @@ export function RegisterForm() {
     >
       <ApiErrorAlert error={apiError} title="Kayıt tamamlanamadı" />
 
-      <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-6">
+      <form method="post" noValidate onSubmit={handleSubmit} className="flex flex-col gap-6">
         <FieldGroup>
           <Field data-invalid={errors.name ? true : undefined}>
             <FieldLabel htmlFor="register-name">Adın</FieldLabel>
