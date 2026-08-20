@@ -1,31 +1,68 @@
 'use client'
 
-import { useState } from 'react'
-import { Clock } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import { CheckCircle2, Clock } from 'lucide-react'
+import { ApiErrorAlert } from '@/components/common/api-error-alert'
+import { Alert, AlertTitle } from '@/components/ui/alert'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Field, FieldDescription, FieldLabel } from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
+import { FieldDescription } from '@/components/ui/field'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import type { TimeBudgetValue } from '@/lib/types/profile'
-import { INPUT_CLASS } from '@/lib/ui'
+import { Skeleton } from '@/components/ui/skeleton'
+import { fetchDailyTimeBudget, updateDailyTimeBudget } from '@/lib/api/profile'
+import type { DailyTimeBudget } from '@/lib/types/profile'
 import { cn } from '@/lib/utils'
 
-const OPTIONS: { value: TimeBudgetValue; label: string; hint: string }[] = [
-  { value: '15', label: '15 dakika', hint: 'Kısa ve odaklı' },
-  { value: '30', label: '30 dakika', hint: 'Dengeli' },
-  { value: '45', label: '45 dakika', hint: 'Ferah' },
-  { value: '60', label: '60 dakika', hint: 'Uzun oyun' },
-  { value: 'custom', label: 'Özel', hint: 'Kendin belirle' },
-]
+export function TimeBudgetCard() {
+  const [budget, setBudget] = useState<DailyTimeBudget | null>(null)
+  const [loadError, setLoadError] = useState<unknown>(null)
+  const [updateError, setUpdateError] = useState<unknown>(null)
+  const [pendingOptionCode, setPendingOptionCode] = useState<string | null>(null)
+  const [saved, setSaved] = useState(false)
+  const [requestVersion, setRequestVersion] = useState(0)
 
-/**
- * Günlük zaman bütçesi tercihi. Ebeveyn hesabı düzeyinde saklanır,
- * çocuk bazlı değildir. Şimdilik yalnızca yerel etkileşim.
- * TODO(entegrasyon): seçim ebeveyn tercih ucuna kaydedilecek.
- */
-export function TimeBudgetCard({ initialValue }: { initialValue: TimeBudgetValue }) {
-  const [value, setValue] = useState<TimeBudgetValue>(initialValue)
-  const [customMinutes, setCustomMinutes] = useState('')
+  const retry = useCallback(() => {
+    setLoadError(null)
+    setBudget(null)
+    setRequestVersion((version) => version + 1)
+  }, [])
+
+  useEffect(() => {
+    const controller = new AbortController()
+    void fetchDailyTimeBudget(controller.signal)
+      .then(setBudget)
+      .catch((requestError: unknown) => {
+        if (requestError instanceof DOMException && requestError.name === 'AbortError') return
+        setLoadError(requestError)
+      })
+    return () => controller.abort()
+  }, [requestVersion])
+
+  async function handleChange(optionCode: string) {
+    if (!budget || optionCode === budget.selectedOptionCode || pendingOptionCode) return
+
+    const previousCode = budget.selectedOptionCode
+    setSaved(false)
+    setUpdateError(null)
+    setPendingOptionCode(optionCode)
+    setBudget((current) => current && { ...current, selectedOptionCode: optionCode })
+
+    try {
+      const response = await updateDailyTimeBudget(optionCode)
+      setBudget((current) =>
+        current && {
+          ...current,
+          selectedOptionCode: response.answeredOptionCode,
+          dailyTimeBudgetMinutes: response.dailyTimeBudgetMinutes,
+        },
+      )
+      setSaved(true)
+    } catch (requestError) {
+      setBudget((current) => current && { ...current, selectedOptionCode: previousCode })
+      setUpdateError(requestError)
+    } finally {
+      setPendingOptionCode(null)
+    }
+  }
 
   return (
     <Card className="rounded-3xl shadow-soft ring-border [--card-spacing:--spacing(5)] sm:[--card-spacing:--spacing(6)]">
@@ -35,63 +72,78 @@ export function TimeBudgetCard({ initialValue }: { initialValue: TimeBudgetValue
           Günlük zaman bütçesi
         </CardTitle>
         <CardDescription className="text-pretty leading-relaxed">
-          Etkinlik önerilerini günlük ayırabileceğin zamana göre düzenleyelim.
+          {budget?.question ?? 'Günlük zaman bütçesi bilgilerin yükleniyor…'}
         </CardDescription>
       </CardHeader>
 
       <CardContent className="flex flex-col gap-4">
-        <RadioGroup
-          value={value}
-          onValueChange={(next) => setValue(next as TimeBudgetValue)}
-          aria-label="Günlük zaman bütçesi"
-          className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
-        >
-          {OPTIONS.map((option) => {
-            const itemId = `time-budget-${option.value}`
+        {loadError ? (
+          <ApiErrorAlert error={loadError} title="Zaman bütçesi yüklenemedi" onRetry={retry} />
+        ) : !budget ? (
+          <div
+            role="status"
+            aria-label="Günlük zaman bütçesi yükleniyor"
+            className="grid gap-3 sm:grid-cols-3"
+          >
+            {[0, 1, 2].map((index) => (
+              <Skeleton key={index} className="h-24 rounded-2xl" />
+            ))}
+          </div>
+        ) : (
+          <>
+            <RadioGroup
+              value={budget.selectedOptionCode ?? ''}
+              onValueChange={handleChange}
+              disabled={pendingOptionCode !== null}
+              aria-label={budget.question}
+              className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
+            >
+              {budget.options.map((option) => {
+                const itemId = `time-budget-${option.code}`
+                const pending = pendingOptionCode === option.code
 
-            return (
-              <label
-                key={option.value}
-                htmlFor={itemId}
-                className={cn(
-                  'flex min-h-11 cursor-pointer items-start gap-3 rounded-2xl border border-border bg-card p-4 text-left transition-colors',
-                  'hover:border-primary/40 hover:bg-primary-soft/40',
-                  'has-data-checked:border-primary has-data-checked:bg-primary-soft',
-                  'has-focus-visible:border-primary',
-                )}
-              >
-                <RadioGroupItem id={itemId} value={option.value} className="mt-0.5" />
-                <span className="flex flex-col gap-0.5">
-                  <span className="font-semibold leading-snug text-foreground">{option.label}</span>
-                  <span className="text-sm leading-relaxed text-muted-foreground">
-                    {option.hint}
-                  </span>
-                </span>
-              </label>
-            )
-          })}
-        </RadioGroup>
+                return (
+                  <label
+                    key={option.code}
+                    htmlFor={itemId}
+                    className={cn(
+                      'flex min-h-11 cursor-pointer items-start gap-3 rounded-2xl border border-border bg-card p-4 text-left transition-colors',
+                      'hover:border-primary/40 hover:bg-primary-soft/40',
+                      'has-data-checked:border-primary has-data-checked:bg-primary-soft',
+                      'has-focus-visible:border-primary',
+                      pendingOptionCode && 'cursor-wait opacity-70',
+                    )}
+                  >
+                    <RadioGroupItem id={itemId} value={option.code} className="mt-0.5" />
+                    <span className="flex flex-col gap-0.5">
+                      <span className="font-semibold leading-snug text-foreground">
+                        {option.label}
+                      </span>
+                      <span className="text-sm leading-relaxed text-muted-foreground">
+                        {pending ? 'Kaydediliyor…' : `${option.minutes} dakika`}
+                      </span>
+                    </span>
+                  </label>
+                )
+              })}
+            </RadioGroup>
 
-        {value === 'custom' ? (
-          <Field className="max-w-xs">
-            <FieldLabel htmlFor="time-budget-custom">Özel süre (dakika)</FieldLabel>
-            <Input
-              id="time-budget-custom"
-              type="number"
-              inputMode="numeric"
-              min={5}
-              max={180}
-              placeholder="Örn. 40"
-              className={INPUT_CLASS}
-              value={customMinutes}
-              onChange={(event) => setCustomMinutes(event.target.value)}
-            />
-          </Field>
-        ) : null}
+            {updateError ? (
+              <ApiErrorAlert error={updateError} title="Zaman bütçesi güncellenemedi" />
+            ) : null}
 
-        <FieldDescription>
-          Bu tercih tüm çocuklar için geçerlidir; çocuk bazlı değil, ebeveyn hesabı ayarıdır.
-        </FieldDescription>
+            {saved ? (
+              <Alert className="border-primary/30 bg-primary-soft text-primary">
+                <CheckCircle2 aria-hidden="true" />
+                <AlertTitle>Günlük zaman bütçen güncellendi.</AlertTitle>
+              </Alert>
+            ) : null}
+
+            <FieldDescription>
+              Bu tercih ebeveyn hesabına bağlıdır ve tüm çocukların önerilerinde kullanılır.
+            </FieldDescription>
+          </>
+        )}
       </CardContent>
     </Card>
   )

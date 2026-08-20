@@ -1,133 +1,97 @@
-'use client'
-
-import { useEffect, useRef, useState } from 'react'
-import { CheckCircle2 } from 'lucide-react'
-import { Alert, AlertTitle } from '@/components/ui/alert'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { SubmitButton } from '@/components/common/submit-button'
 import type { ParentProfile } from '@/lib/types/profile'
 import { INPUT_CLASS } from '@/lib/ui'
 
-/**
- * Kişisel bilgiler formu.
- * Yalnızca yerel (local) durum tutar — API çağrısı veya kalıcı kayıt yoktur.
- * TODO(entegrasyon): kaydetme akışı ebeveyn güncelleme ucuna bağlanacak.
- */
+/** Profil API'sinden gelen ebeveyn bilgilerini salt okunur gösterir. */
 export function PersonalInfoCard({ parent }: { parent: ParentProfile }) {
-  const [form, setForm] = useState(parent)
-  const [pending, setPending] = useState(false)
-  const [saved, setSaved] = useState(false)
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  useEffect(() => () => {
-    if (timerRef.current) clearTimeout(timerRef.current)
-  }, [])
-
-  function update(key: keyof ParentProfile, value: string) {
-    setSaved(false)
-    setForm((current) => ({ ...current, [key]: value }))
-  }
-
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    // Ağ çağrısı yok: yalnızca kaydetme durumunun (disabled/loading) tasarımı gösterilir.
-    setPending(true)
-    timerRef.current = setTimeout(() => {
-      setPending(false)
-      setSaved(true)
-    }, 600)
-  }
-
   return (
     <Card className="rounded-3xl shadow-soft ring-border [--card-spacing:--spacing(5)] sm:[--card-spacing:--spacing(6)]">
       <CardHeader className="gap-1.5">
         <CardTitle className="font-heading text-lg font-bold">Kişisel bilgiler</CardTitle>
         <CardDescription className="leading-relaxed">
-          Hesabındaki iletişim bilgilerini güncel tutabilirsin.
+          Hesabındaki kimlik ve iletişim bilgileri.
         </CardDescription>
       </CardHeader>
 
       <CardContent>
-        <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-6">
-          <FieldGroup>
-            <div className="grid gap-5 sm:grid-cols-2">
-              <Field>
-                <FieldLabel htmlFor="parent-first-name">Ad</FieldLabel>
-                <Input
-                  id="parent-first-name"
-                  name="firstName"
-                  autoComplete="given-name"
-                  className={INPUT_CLASS}
-                  value={form.firstName}
-                  onChange={(event) => update('firstName', event.target.value)}
-                />
-              </Field>
+        <FieldGroup>
+          <Field>
+            <FieldLabel htmlFor="parent-full-name">Ad soyad</FieldLabel>
+            <Input
+              id="parent-full-name"
+              name="fullName"
+              autoComplete="name"
+              placeholder="Belirtilmedi"
+              className={INPUT_CLASS}
+              value={parent.fullName}
+              readOnly
+            />
+          </Field>
 
-              <Field>
-                <FieldLabel htmlFor="parent-last-name">Soyad</FieldLabel>
-                <Input
-                  id="parent-last-name"
-                  name="lastName"
-                  autoComplete="family-name"
-                  className={INPUT_CLASS}
-                  value={form.lastName}
-                  onChange={(event) => update('lastName', event.target.value)}
-                />
-              </Field>
-            </div>
+          <Field>
+            <FieldLabel htmlFor="parent-email">E-posta adresi</FieldLabel>
+            <Input
+              id="parent-email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              className={INPUT_CLASS}
+              value={parent.email}
+              readOnly
+            />
+            <FieldDescription>Giriş yaparken bu adresi kullanıyorsun.</FieldDescription>
+          </Field>
 
+          <div className="grid gap-5 sm:grid-cols-2">
             <Field>
-              <FieldLabel htmlFor="parent-email">E-posta adresi</FieldLabel>
+              <FieldLabel htmlFor="parent-city">Şehir</FieldLabel>
               <Input
-                id="parent-email"
-                name="email"
-                type="email"
-                autoComplete="email"
+                id="parent-city"
+                name="city"
+                autoComplete="address-level1"
+                placeholder="Belirtilmedi"
                 className={INPUT_CLASS}
-                value={form.email}
-                onChange={(event) => update('email', event.target.value)}
+                value={parent.city}
+                readOnly
               />
-              <FieldDescription>Giriş yaparken bu adresi kullanıyorsun.</FieldDescription>
             </Field>
 
             <Field>
-              <FieldLabel htmlFor="parent-phone">Telefon numarası</FieldLabel>
+              <FieldLabel htmlFor="parent-district">İlçe</FieldLabel>
               <Input
-                id="parent-phone"
-                name="phone"
-                type="tel"
-                inputMode="tel"
-                autoComplete="tel"
-                placeholder="Telefon numarası ekle"
+                id="parent-district"
+                name="district"
+                autoComplete="address-level2"
+                placeholder="Belirtilmedi"
                 className={INPUT_CLASS}
-                value={form.phone}
-                onChange={(event) => update('phone', event.target.value)}
+                value={parent.district}
+                readOnly
               />
-              <FieldDescription>
-                {form.phone.trim()
-                  ? 'Yalnızca hesap güvenliği için kullanılır.'
-                  : 'Telefon numarası ekle: hesabını kurtarmak gerektiğinde işine yarar.'}
-              </FieldDescription>
             </Field>
-          </FieldGroup>
+          </div>
 
-          {saved ? (
-            <Alert className="border-primary/30 bg-primary-soft text-primary">
-              <CheckCircle2 aria-hidden="true" />
-              <AlertTitle>Bilgilerin güncellendi.</AlertTitle>
-            </Alert>
-          ) : null}
-
-          <SubmitButton
-            pending={pending}
-            pendingLabel="Kaydediliyor…"
-            className="sm:w-fit sm:px-6"
-          >
-            Değişiklikleri kaydet
-          </SubmitButton>
-        </form>
+          <Field>
+            <FieldLabel htmlFor="parent-phone">Telefon numarası</FieldLabel>
+            <Input
+              id="parent-phone"
+              name="phone"
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              placeholder="Belirtilmedi"
+              className={INPUT_CLASS}
+              value={parent.phone}
+              readOnly
+            />
+            <FieldDescription>
+              {parent.phone.trim()
+                ? 'Yalnızca hesap güvenliği için kullanılır.'
+                : 'Profilinde kayıtlı bir telefon numarası yok.'}
+            </FieldDescription>
+          </Field>
+        </FieldGroup>
       </CardContent>
     </Card>
   )

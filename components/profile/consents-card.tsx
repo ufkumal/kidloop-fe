@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
-import { AlertTriangle, FileText, ShieldAlert, ShieldCheck } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import { AlertTriangle, FileText, ShieldCheck } from 'lucide-react'
+import { ApiErrorAlert } from '@/components/common/api-error-alert'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,46 +14,84 @@ import {
   AlertDialogMedia,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
-import { CONSENT_PLACEHOLDER_TEXT } from '@/lib/mock/profile'
-import type { ConsentPreference, ConsentsStatus } from '@/lib/types/profile'
+import { fetchConsents, updateConsent } from '@/lib/api/consents'
+import type { Consent } from '@/lib/types/consent'
 import { cn } from '@/lib/utils'
 
-interface ConsentsCardProps {
-  consents: ConsentPreference[]
-  status: ConsentsStatus
+function readableConsentContent(content: string): string {
+  return content.replace(/^#{1,6}\s+/gm, '').trim()
 }
 
-/**
- * İzinler ve onaylar. Zorunlu izinler kapatılmak istendiğinde onay modalı açılır.
- * Hukuki veya backend mantığı burada kurulmaz; yalnızca yerel etkileşim.
- * TODO(entegrasyon): kararlar lib/api/consents.ts içindeki updateConsent'a bağlanacak.
- */
-export function ConsentsCard({ consents, status }: ConsentsCardProps) {
-  const [decisions, setDecisions] = useState<Record<number, boolean>>(() =>
-    Object.fromEntries(consents.map((consent) => [consent.consentId, consent.granted])),
-  )
-  const [pendingRevoke, setPendingRevoke] = useState<ConsentPreference | null>(null)
+export function ConsentsCard() {
+  const [consents, setConsents] = useState<Consent[] | null>(null)
+  const [loadError, setLoadError] = useState<unknown>(null)
+  const [updateError, setUpdateError] = useState<unknown>(null)
+  const [updatingId, setUpdatingId] = useState<number | null>(null)
+  const [pendingRevoke, setPendingRevoke] = useState<Consent | null>(null)
   const [openTextId, setOpenTextId] = useState<number | null>(null)
+  const [requestVersion, setRequestVersion] = useState(0)
 
-  function handleToggle(consent: ConsentPreference, next: boolean) {
-    if (consent.required && !next) {
+  const retry = useCallback(() => {
+    setLoadError(null)
+    setConsents(null)
+    setRequestVersion((version) => version + 1)
+  }, [])
+
+  useEffect(() => {
+    const controller = new AbortController()
+    void fetchConsents(controller.signal)
+      .then(setConsents)
+      .catch((requestError: unknown) => {
+        if (requestError instanceof DOMException && requestError.name === 'AbortError') return
+        setLoadError(requestError)
+      })
+    return () => controller.abort()
+  }, [requestVersion])
+
+  async function saveDecision(consent: Consent, granted: boolean) {
+    if (updatingId !== null || consent.granted === granted) return
+
+    setUpdateError(null)
+    setUpdatingId(consent.consentId)
+    setConsents((current) =>
+      current?.map((item) =>
+        item.consentId === consent.consentId ? { ...item, granted } : item,
+      ) ?? null,
+    )
+
+    try {
+      const updated = await updateConsent(consent.consentId, { granted })
+      setConsents((current) =>
+        current?.map((item) => (item.consentId === updated.consentId ? updated : item)) ?? null,
+      )
+    } catch (requestError) {
+      setConsents((current) =>
+        current?.map((item) => (item.consentId === consent.consentId ? consent : item)) ?? null,
+      )
+      setUpdateError(requestError)
+    } finally {
+      setUpdatingId(null)
+    }
+  }
+
+  function handleToggle(consent: Consent, granted: boolean) {
+    if (consent.required && !granted) {
       setPendingRevoke(consent)
       return
     }
-    setDecisions((current) => ({ ...current, [consent.consentId]: next }))
+    void saveDecision(consent, granted)
   }
 
   function confirmRevoke() {
     if (!pendingRevoke) return
-    setDecisions((current) => ({ ...current, [pendingRevoke.consentId]: false }))
+    const consent = pendingRevoke
     setPendingRevoke(null)
+    void saveDecision(consent, false)
   }
 
   return (
@@ -68,8 +107,10 @@ export function ConsentsCard({ consents, status }: ConsentsCardProps) {
       </CardHeader>
 
       <CardContent className="flex flex-col gap-4">
-        {status === 'loading' ? (
-          <ul className="flex flex-col gap-3">
+        {loadError ? (
+          <ApiErrorAlert error={loadError} title="İzinler yüklenemedi" onRetry={retry} />
+        ) : consents === null ? (
+          <ul role="status" aria-label="İzinler yükleniyor" className="flex flex-col gap-3">
             {[0, 1, 2].map((index) => (
               <li key={index} className="rounded-2xl border border-border p-4">
                 <div className="flex flex-col gap-2">
@@ -79,30 +120,23 @@ export function ConsentsCard({ consents, status }: ConsentsCardProps) {
               </li>
             ))}
           </ul>
-        ) : status === 'error' ? (
-          <Alert variant="destructive" className="rounded-2xl border-destructive/30">
-            <ShieldAlert aria-hidden="true" />
-            <AlertTitle>İzinler yüklenemedi</AlertTitle>
-            <AlertDescription>
-              Bağlantını kontrol edip sayfayı yenilemeyi dene.
-            </AlertDescription>
-          </Alert>
-        ) : status === 'empty' || consents.length === 0 ? (
+        ) : consents.length === 0 ? (
           <Empty className="border border-dashed border-input bg-warm/40">
             <EmptyHeader>
               <EmptyTitle className="font-heading text-base font-bold">
                 Gösterilecek izin yok
               </EmptyTitle>
               <EmptyDescription>
-                Onay metinleri güncellendiğinde bu listede görünecek.
+                Onay metinleri yayınlandığında bu listede görünecek.
               </EmptyDescription>
             </EmptyHeader>
           </Empty>
         ) : (
           <ul className="flex flex-col gap-3">
             {consents.map((consent) => {
-              const granted = decisions[consent.consentId] === true
+              const granted = consent.granted === true
               const textOpen = openTextId === consent.consentId
+              const updating = updatingId === consent.consentId
 
               return (
                 <li
@@ -139,7 +173,7 @@ export function ConsentsCard({ consents, status }: ConsentsCardProps) {
                             granted ? 'text-primary' : 'text-muted-foreground',
                           )}
                         >
-                          {granted ? 'Onaylandı' : 'Onaylanmadı'}
+                          {updating ? 'Kaydediliyor…' : granted ? 'Onaylandı' : 'Onaylanmadı'}
                         </span>
                         <span className="text-muted-foreground">Sürüm {consent.version}</span>
                         <button
@@ -150,7 +184,7 @@ export function ConsentsCard({ consents, status }: ConsentsCardProps) {
                           className="inline-flex min-h-11 items-center gap-1.5 font-semibold text-primary underline-offset-4 hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
                         >
                           <FileText className="size-4" aria-hidden="true" />
-                          Metni görüntüle
+                          {textOpen ? 'Metni gizle' : 'Metni görüntüle'}
                         </button>
                       </div>
                     </div>
@@ -159,6 +193,7 @@ export function ConsentsCard({ consents, status }: ConsentsCardProps) {
                       <Switch
                         id={`consent-switch-${consent.consentId}`}
                         checked={granted}
+                        disabled={updatingId !== null}
                         onCheckedChange={(next) => handleToggle(consent, next === true)}
                         aria-label={`${consent.title} iznini ${granted ? 'kapat' : 'aç'}`}
                         className="scale-125"
@@ -171,8 +206,8 @@ export function ConsentsCard({ consents, status }: ConsentsCardProps) {
                       id={`consent-text-${consent.consentId}`}
                       className="border-t border-border bg-warm/40 px-4 py-4"
                     >
-                      <p className="text-pretty text-sm leading-relaxed text-muted-foreground">
-                        {CONSENT_PLACEHOLDER_TEXT}
+                      <p className="whitespace-pre-line text-pretty text-sm leading-relaxed text-muted-foreground">
+                        {readableConsentContent(consent.content)}
                       </p>
                     </div>
                   ) : null}
@@ -182,9 +217,13 @@ export function ConsentsCard({ consents, status }: ConsentsCardProps) {
           </ul>
         )}
 
-        {status === 'ready' && consents.length > 0 ? (
+        {updateError ? (
+          <ApiErrorAlert error={updateError} title="İzin tercihi güncellenemedi" />
+        ) : null}
+
+        {consents && consents.length > 0 ? (
           <p className="text-pretty text-sm leading-relaxed text-muted-foreground">
-            Zorunlu izinleri kapatmak hesabını kullanmanı etkileyebilir. Pazarlama iznini
+            Zorunlu izinleri kapatmak hesabını kullanmanı etkileyebilir. İsteğe bağlı izinleri
             istediğin zaman açıp kapatabilirsin.
           </p>
         ) : null}

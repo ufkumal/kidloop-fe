@@ -1,27 +1,49 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, Baby, UserRound } from 'lucide-react'
 import { ChildProfileTab } from '@/components/profile/child-profile-tab'
 import { ParentProfileTab } from '@/components/profile/parent-profile-tab'
+import { ApiErrorAlert } from '@/components/common/api-error-alert'
+import { LoadingState } from '@/components/common/loading-state'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-  MOCK_CHILDREN,
-  MOCK_CONSENTS,
-  MOCK_CONSENTS_STATUS,
-  MOCK_PARENT,
-  MOCK_TIME_BUDGET,
-} from '@/lib/mock/profile'
+import { fetchProfile } from '@/lib/api/profile'
+import type { ProfileData } from '@/lib/types/profile'
 
 type ProfileTab = 'child' | 'parent'
 
-/**
- * Profil merkezi. Veri şu an lib/mock/profile.ts içindeki geçici örnek
- * veriden gelir; sekme durumu yalnızca yerel UI state'te tutulur.
- */
+/** Profil ve çocuk verilerini backend'den yükleyen profil merkezi. */
 export function ProfileView() {
   const [tab, setTab] = useState<ProfileTab>('child')
+  const [profile, setProfile] = useState<ProfileData | null>(null)
+  const [error, setError] = useState<unknown>(null)
+  const [requestVersion, setRequestVersion] = useState(0)
+
+  const retry = useCallback(() => {
+    setError(null)
+    setProfile(null)
+    setRequestVersion((version) => version + 1)
+  }, [])
+
+  useEffect(() => {
+    const controller = new AbortController()
+    void fetchProfile(controller.signal)
+      .then(setProfile)
+      .catch((requestError: unknown) => {
+        if (requestError instanceof DOMException && requestError.name === 'AbortError') return
+        setError(requestError)
+      })
+    return () => controller.abort()
+  }, [requestVersion])
+
+  if (error) {
+    return <ApiErrorAlert error={error} title="Profil yüklenemedi" onRetry={retry} />
+  }
+
+  if (!profile) {
+    return <LoadingState label="Profilin hazırlanıyor…" />
+  }
 
   return (
     <div className="flex flex-col gap-8">
@@ -60,16 +82,11 @@ export function ProfileView() {
         </TabsList>
 
         <TabsContent value="child" className="pt-4">
-          <ChildProfileTab childProfiles={MOCK_CHILDREN} />
+          <ChildProfileTab childProfiles={profile.children} />
         </TabsContent>
 
         <TabsContent value="parent" className="pt-4">
-          <ParentProfileTab
-            parent={MOCK_PARENT}
-            timeBudget={MOCK_TIME_BUDGET}
-            consents={MOCK_CONSENTS}
-            consentsStatus={MOCK_CONSENTS_STATUS}
-          />
+          <ParentProfileTab parent={profile.parent} />
         </TabsContent>
       </Tabs>
     </div>

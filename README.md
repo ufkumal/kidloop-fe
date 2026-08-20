@@ -14,6 +14,22 @@ corepack pnpm dev
 
 Uygulama `http://localhost:3000` adresinde çalışır ve kök adres `/login` ekranına yönlenir.
 
+Aynı ağdaki başka bir cihazdan, terminalde `Network` satırında gösterilen adresi
+(örneğin `http://172.20.10.4:3000`) açabilirsin. `next.config.mjs`, Mac'in güncel
+yerel IP adreslerini başlangıçta otomatik olarak izin listesine ekler; Wi-Fi veya
+hotspot değişince yalnızca geliştirme sunucusunu yeniden başlatman yeterlidir.
+
+LAN adresinde form düğmesine bastığında URL'ye `?email=...` ekleniyorsa React
+istemcisi yüklenmemiş demektir. Şunları kontrol et:
+
+1. `pnpm dev` terminalinde `Blocked cross-origin request` uyarısı var mı?
+2. Tarayıcı Console sekmesinde JavaScript yükleme hatası var mı?
+3. Network sekmesinde `Fetch/XHR` filtresini kapatıp kırmızı `/_next/` istekleri var mı?
+4. IP/ağ değiştiyse `pnpm dev` sürecini durdurup yeniden başlattın mı?
+
+Normal akışta giriş ve kayıt istekleri tarayıcıdan same-origin
+`/api/backend/...` adresine `POST` olarak gider; adres çubuğuna parola yazılmaz.
+
 ### `.env.local`
 
 ```bash

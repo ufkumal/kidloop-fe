@@ -5,27 +5,14 @@ import { PersonalInfoCard } from '@/components/profile/personal-info-card'
 import { ProfileAvatar } from '@/components/profile/profile-avatar'
 import { TimeBudgetCard } from '@/components/profile/time-budget-card'
 import { Card, CardContent } from '@/components/ui/card'
-import type {
-  ConsentPreference,
-  ConsentsStatus,
-  ParentProfile,
-  TimeBudgetValue,
-} from '@/lib/types/profile'
+import type { ParentProfile } from '@/lib/types/profile'
 
 interface ParentProfileTabProps {
   parent: ParentProfile
-  timeBudget: TimeBudgetValue
-  consents: ConsentPreference[]
-  consentsStatus: ConsentsStatus
 }
 
-export function ParentProfileTab({
-  parent,
-  timeBudget,
-  consents,
-  consentsStatus,
-}: ParentProfileTabProps) {
-  const fullName = `${parent.firstName} ${parent.lastName}`.trim()
+export function ParentProfileTab({ parent }: ParentProfileTabProps) {
+  const fullName = parent.fullName.trim()
 
   return (
     <div className="flex flex-col gap-7">
@@ -47,8 +34,8 @@ export function ParentProfileTab({
       </Card>
 
       <PersonalInfoCard parent={parent} />
-      <TimeBudgetCard initialValue={timeBudget} />
-      <ConsentsCard consents={consents} status={consentsStatus} />
+      <TimeBudgetCard />
+      <ConsentsCard />
     </div>
   )
 }

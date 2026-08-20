@@ -132,7 +132,7 @@ export function LoginForm() {
     >
       <ApiErrorAlert error={apiError} title="Giriş yapılamadı" />
 
-      <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-6">
+      <form method="post" noValidate onSubmit={handleSubmit} className="flex flex-col gap-6">
         <FieldGroup>
           <Field data-invalid={errors.email ? true : undefined}>
             <FieldLabel htmlFor="login-email">E-posta</FieldLabel>
