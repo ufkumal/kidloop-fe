@@ -8,8 +8,9 @@ import type { LoginRequest, LoginResponse, RegisterRequest, UserRole } from '@/l
  * - GET  /api/auth/verify?token=...
  */
 
-export async function registerParent(input: { email: string; password: string }) {
+export async function registerParent(input: { name: string; email: string; password: string }) {
   const body: RegisterRequest = {
+    name: input.name.trim(),
     email: input.email.trim(),
     password: input.password,
     role: 'PARENT',
