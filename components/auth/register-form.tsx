@@ -54,13 +54,12 @@ export function RegisterForm() {
 
     setPending(true)
     try {
-      // "Adın" yalnızca arayüzde toplanır, backend sözleşmesinde yer almadığı için gönderilmez.
-      await registerParent({ email, password })
+      await registerParent({ name, email, password })
       setRegisteredEmail(email.trim())
     } catch (error) {
       setApiError(error)
       // Sunucu alan bazlı hata döndüyse ilgili alanların altında da göster.
-      const serverErrors = mapApiFieldErrors(error, ['email', 'password'])
+      const serverErrors = mapApiFieldErrors(error, ['name', 'email', 'password'])
       if (Object.keys(serverErrors).length > 0) {
         setErrors((current) => ({ ...current, ...serverErrors }))
       }

@@ -2,6 +2,7 @@ export type UserRole = 'PARENT' | 'WORKSHOP' | 'ADMIN'
 
 /** POST /api/auth/register */
 export interface RegisterRequest {
+  name: string
   email: string
   password: string
   role: 'PARENT'
