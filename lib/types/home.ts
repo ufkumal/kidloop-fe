@@ -45,20 +45,8 @@ export interface FeedbackQuestion {
   options: FeedbackQuestionOption[]
 }
 
-/** Ebeveynin ses kaydı (şimdilik yalnızca tarayıcı içinde tutulur). */
+/** Sesli geri bildirim desteği eklendiğinde kullanılacak tarayıcı kaydı. */
 export interface VoiceRecordingPayload {
   localUrl?: string
   durationSeconds: number
-}
-
-/** Backend ve AI ajanına gönderilecek geri bildirim gövdesi. */
-export interface ActivityFeedback {
-  activityId: number
-  childId?: number
-  enjoyment?: string
-  tags: string[]
-  text?: string
-  voiceRecording?: VoiceRecordingPayload
-  /** ISO 8601 */
-  submittedAt: string
 }

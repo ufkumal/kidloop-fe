@@ -1,35 +1,9 @@
-/**
- * Etkinlik geri bildirimi gönderimi.
- *
- * TODO(backend): Şu anda gerçek bir istek atılmıyor. Kidloop geri bildirim ucu
- * ve AI ajanı hazır olduğunda bu dosyadaki submitActivityFeedback fonksiyonu
- * lib/api/client.ts üzerinden gerçek çağrıya dönüştürülecek. Örnek:
- *
- *   return apiRequest<void>('/activities/feedback', {
- *     method: 'POST',
- *     body: feedback,
- *   })
- *
- * Görsel bileşenlerde başka hiçbir yerde mock gönderim mantığı bulunmaz.
- */
-
 import { ApiError, apiRequest } from '@/lib/api/client'
 import type {
-  ActivityFeedback,
   FeedbackQuestion,
   FeedbackQuestionOption,
   FeedbackQuestionType,
-  VoiceRecordingPayload,
 } from '@/lib/types/home'
-
-interface BuildFeedbackInput {
-  activityId: number
-  childId?: number | null
-  enjoyment?: string | null
-  tags: string[]
-  text?: string
-  voiceRecording?: VoiceRecordingPayload | null
-}
 
 const QUESTION_TYPES: FeedbackQuestionType[] = [
   'SINGLE_CHOICE',
@@ -122,45 +96,18 @@ export async function fetchFeedbackQuestions(signal?: AbortSignal): Promise<Feed
   )
 }
 
-/** Görsel durumdan backend'e uygun gövdeyi üretir. */
-export function buildActivityFeedback({
-  activityId,
-  childId,
-  enjoyment,
-  tags,
-  text,
-  voiceRecording,
-}: BuildFeedbackInput): ActivityFeedback {
-  const trimmedText = text?.trim()
-
-  return {
-    activityId,
-    ...(childId ? { childId } : {}),
-    ...(enjoyment ? { enjoyment } : {}),
-    tags,
-    ...(trimmedText ? { text: trimmedText } : {}),
-    ...(voiceRecording ? { voiceRecording } : {}),
-    submittedAt: new Date().toISOString(),
-  }
-}
-
-/** En az bir anlamlı girdi var mı? */
-export function hasMeaningfulFeedback({
-  enjoyment,
-  tags,
-  text,
-  voiceRecording,
-}: Pick<BuildFeedbackInput, 'enjoyment' | 'tags' | 'text' | 'voiceRecording'>) {
-  return Boolean(
-    enjoyment ||
-      tags.length > 0 ||
-      (text?.trim()?.length ?? 0) > 0 ||
-      (voiceRecording?.durationSeconds ?? 0) > 0,
+/** Seçilen soru seçeneğinin kodunu etkinlik geri bildirimi olarak gönderir. */
+export async function submitActivityFeedback(
+  childId: number,
+  dailyPlanItemId: number,
+  feedbackType: FeedbackQuestionOption['code'],
+): Promise<void> {
+  await apiRequest<void>(
+    `/api/children/${encodeURIComponent(childId)}/daily-plan/items/${encodeURIComponent(dailyPlanItemId)}/feedback`,
+    {
+      method: 'POST',
+      auth: true,
+      body: { feedbackType },
+    },
   )
-}
-
-/** TODO(backend): Kidloop backend + AI ajanı ucuna bağlanacak. */
-export async function submitActivityFeedback(feedback: ActivityFeedback): Promise<void> {
-  console.log('[v0] mock submitActivityFeedback payload:', feedback)
-  await new Promise((resolve) => setTimeout(resolve, 900))
 }

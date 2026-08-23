@@ -2,7 +2,7 @@ import { apiRequest } from '@/lib/api/client'
 import type { DailyPlan } from '@/lib/types/daily-plan'
 
 export async function fetchTodayDailyPlan(
-  childId: string,
+  childId: string | number,
   signal?: AbortSignal,
 ): Promise<DailyPlan> {
   return apiRequest<DailyPlan>(
