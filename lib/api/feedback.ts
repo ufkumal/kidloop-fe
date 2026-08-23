@@ -1,5 +1,6 @@
 import { ApiError, apiRequest } from '@/lib/api/client'
 import type {
+  ActivityFeedbackType,
   FeedbackQuestion,
   FeedbackQuestionOption,
   FeedbackQuestionType,
@@ -100,14 +101,15 @@ export async function fetchFeedbackQuestions(signal?: AbortSignal): Promise<Feed
 export async function submitActivityFeedback(
   childId: number,
   dailyPlanItemId: number,
-  feedbackType: FeedbackQuestionOption['code'],
+  feedbackType: ActivityFeedbackType,
+  freeText?: string,
 ): Promise<void> {
   await apiRequest<void>(
     `/api/children/${encodeURIComponent(childId)}/daily-plan/items/${encodeURIComponent(dailyPlanItemId)}/feedback`,
     {
       method: 'POST',
       auth: true,
-      body: { feedbackType },
+      body: { feedbackType, ...(freeText?.trim() ? { freeText: freeText.trim() } : {}) },
     },
   )
 }

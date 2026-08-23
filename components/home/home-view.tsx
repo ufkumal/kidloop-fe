@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { NewUserWelcome } from '@/components/home/new-user-welcome'
+import { useRouter } from 'next/navigation'
 import { ReturningUserWelcome } from '@/components/home/returning-user-welcome'
 import { ApiErrorAlert } from '@/components/common/api-error-alert'
 import { LoadingState } from '@/components/common/loading-state'
@@ -10,6 +10,7 @@ import { fetchFeedbackQuestions } from '@/lib/api/feedback'
 import type { FeedbackQuestion, HomeStatus } from '@/lib/types/home'
 
 export function HomeView() {
+  const router = useRouter()
   const [homeStatus, setHomeStatus] = useState<HomeStatus | null>(null)
   const [questions, setQuestions] = useState<FeedbackQuestion[]>([])
   const [error, setError] = useState<unknown>(null)
@@ -28,7 +29,7 @@ export function HomeView() {
     async function loadHomeStatus() {
       try {
         const response = await fetchHomeStatus(controller.signal)
-        if (response.state === 'returning-user') {
+        if (response.state === 'feedback-required') {
           const feedbackQuestions = await fetchFeedbackQuestions(controller.signal)
           setQuestions(feedbackQuestions)
         }
@@ -42,6 +43,10 @@ export function HomeView() {
     void loadHomeStatus()
     return () => controller.abort()
   }, [requestVersion])
+
+  useEffect(() => {
+    if (homeStatus?.state === 'new-user') router.replace('/onboarding/identity')
+  }, [homeStatus, router])
 
   if (error) {
     return (
@@ -57,18 +62,15 @@ export function HomeView() {
     return <LoadingState label="Ana sayfan hazırlanıyor…" />
   }
 
+  if (homeStatus.state === 'new-user') {
+    return <LoadingState label="Çocuk profilini oluşturmaya yönlendiriliyorsun…" />
+  }
+
   return (
-    <div className="flex flex-col gap-8">
-      {homeStatus.state === 'new-user' ? (
-        <NewUserWelcome />
-      ) : (
-        <ReturningUserWelcome
-          activity={homeStatus.latestActivity}
-          childId={homeStatus.childId}
-          childName={homeStatus.childName}
-          questions={questions}
-        />
-      )}
-    </div>
+    <ReturningUserWelcome
+      status={homeStatus}
+      questions={questions}
+      onFeedbackSubmitted={retry}
+    />
   )
 }

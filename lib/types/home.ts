@@ -1,29 +1,54 @@
-/**
- * Ana sayfa (authenticated /home) tipleri.
- *
- * Buradaki şekiller backend hazır olduğunda olduğu gibi kullanılabilir;
- * görsel bileşenler bu tiplere bağlıdır, mock veriye değil.
- */
+/** Ana sayfa durum API'sinin desteklediği kullanıcı akışları. */
+export type HomeState = 'new-user' | 'feedback-required' | 'returning-user'
 
-/** Ebeveynin onboarding'i tamamlayıp tamamlamadığını temsil eder. */
-export type HomeState = 'new-user' | 'returning-user'
+export type ActivityFeedbackType = 'LIKED' | 'STRUGGLED' | 'DISLIKED'
 
-/** `/api/home/status` yanıtındaki seçili son etkinlik. */
+export interface ActivityFeedback {
+  feedbackId: number
+  feedbackType: ActivityFeedbackType
+  resolvedReason: string | null
+  freeText: string | null
+  /** ISO 8601 */
+  createdAt: string
+}
+
+/** `/api/home/status` yanıtındaki en son seçilmiş etkinlik. */
 export interface LatestActivity {
   dailyPlanItemId: number
   activityId: number
   title: string
+  description: string
+  durationMinutes: number
+  slotType: string
+  intro: string
+  purpose: string
+  whyItMatters: string
+  easierVariation: string
+  harderVariation: string
+  observationTip: string
   /** ISO 8601 */
   selectedAt: string
+  /** ISO 8601; etkinlik henüz tamamlanmadıysa null. */
+  completedAt: string | null
+  feedbackSubmitted: boolean
+  feedback: ActivityFeedback | null
 }
 
 export type HomeStatus =
-  | { state: 'new-user' }
+  | { state: 'new-user'; shouldGenerateDailyPlan?: boolean }
+  | {
+      state: 'feedback-required'
+      childId: number
+      childName: string
+      shouldGenerateDailyPlan: false
+      latestActivity: LatestActivity
+    }
   | {
       state: 'returning-user'
       childId: number
       childName: string
-      latestActivity: LatestActivity
+      shouldGenerateDailyPlan: true
+      latestActivity: LatestActivity | null
     }
 
 export type FeedbackQuestionType = 'SINGLE_CHOICE' | 'MULTI_CHOICE' | 'FREE_TEXT'
