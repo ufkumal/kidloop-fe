@@ -76,8 +76,8 @@ export function PlanReadyView() {
           <div className="flex w-fit items-center gap-2 rounded-full bg-card px-3 py-1.5 text-sm text-muted-foreground shadow-soft ring-1 ring-border">
             <Clock className="size-4 text-primary" aria-hidden="true" />
             Toplam {plan.totalDurationMinutes} dakika
-            {plan.budgetMinutes !== plan.totalDurationMinutes
-              ? ` · ${plan.budgetMinutes} dakikalık bütçe`
+            {plan.budgetMin !== plan.budgetMax
+              ? ` · ${plan.budgetMin}-${plan.budgetMax} dakikalık bütçe`
               : null}
           </div>
         ) : null}

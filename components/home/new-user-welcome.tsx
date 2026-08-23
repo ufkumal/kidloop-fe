@@ -62,7 +62,7 @@ export function NewUserWelcome() {
               className="h-12 w-full rounded-xl text-[0.95rem] sm:w-fit sm:px-7"
               render={<Link href="/onboarding/identity" />}
             >
-              Çocuğumu tanıtmaya başla
+              Çocuğunu tanıtmaya başla
             </Button>
             <p className="text-sm leading-relaxed text-muted-foreground">
               Yalnızca birkaç kısa soru • Yaklaşık 3 dakika

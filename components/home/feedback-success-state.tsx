@@ -1,13 +1,23 @@
-import Link from 'next/link'
 import { CircleCheck } from 'lucide-react'
+import { ApiErrorAlert } from '@/components/common/api-error-alert'
+import { SubmitButton } from '@/components/common/submit-button'
 import { Button } from '@/components/ui/button'
 
 interface FeedbackSuccessStateProps {
   childName?: string | null
+  onBrowse: () => void
+  browsePending: boolean
+  browseError?: unknown
   onStay: () => void
 }
 
-export function FeedbackSuccessState({ childName, onStay }: FeedbackSuccessStateProps) {
+export function FeedbackSuccessState({
+  childName,
+  onBrowse,
+  browsePending,
+  browseError,
+  onStay,
+}: FeedbackSuccessStateProps) {
   return (
     <div className="flex flex-col items-start gap-4" role="status" aria-live="polite">
       <span
@@ -25,19 +35,24 @@ export function FeedbackSuccessState({ childName, onStay }: FeedbackSuccessState
           : 'Bu geri bildirim, sonraki önerilerinizi daha uygun hale getirmemize yardımcı olacak.'}
       </p>
 
+      <ApiErrorAlert error={browseError} title="Günlük plan yüklenemedi" />
+
       <div className="flex w-full flex-col gap-2.5 pt-1 sm:flex-row">
-        <Button
+        <SubmitButton
+          type="button"
           size="lg"
-          nativeButton={false}
+          pending={browsePending}
+          pendingLabel="Etkinlikler yükleniyor…"
+          onClick={onBrowse}
           className="h-11 w-full rounded-xl text-[0.95rem] sm:w-fit sm:px-5"
-          render={<Link href="/plan-ready" />}
         >
           Bugünün etkinliklerine göz at
-        </Button>
+        </SubmitButton>
         <Button
           type="button"
           size="lg"
           variant="ghost"
+          disabled={browsePending}
           onClick={onStay}
           className="h-11 w-full rounded-xl text-[0.95rem] sm:w-fit sm:px-4"
         >

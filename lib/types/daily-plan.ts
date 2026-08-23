@@ -13,6 +13,8 @@ export interface DailyPlanActivity {
   easierVariation: string
   harderVariation: string
   observationTip: string
+  withinBudget: boolean
+  repeatNotice: boolean
   /** Etkinlik ebeveyn tarafından bugünün planından seçildiğinde true. */
   selected?: boolean
 }
@@ -22,7 +24,11 @@ export interface DailyPlan {
   childId: number
   /** YYYY-MM-DD */
   planDate: string
-  budgetMinutes: number
+  budgetMin: number
+  budgetMax: number
+  committedDurationMinutes: number
   totalDurationMinutes: number
+  fallbackLevel: number
   activities: DailyPlanActivity[]
+  state: string
 }
