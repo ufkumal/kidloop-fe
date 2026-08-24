@@ -16,16 +16,6 @@ function formatSelectedAt(value: string) {
   }).format(new Date(value))
 }
 
-function Instruction({ title, children }: { title: string; children: string }) {
-  if (!children.trim()) return null
-  return (
-    <div className="rounded-2xl bg-warm/55 p-4">
-      <h4 className="font-heading text-sm font-bold">{title}</h4>
-      <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{children}</p>
-    </div>
-  )
-}
-
 export function LastActivityCard({
   activity,
   completed = false,
@@ -35,7 +25,7 @@ export function LastActivityCard({
 }) {
   return (
     <Card className="rounded-3xl shadow-soft ring-border [--card-spacing:--spacing(5)] sm:[--card-spacing:--spacing(6)]">
-      <CardContent className="flex flex-col gap-6">
+      <CardContent>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-5">
           <span
             aria-hidden="true"
@@ -67,15 +57,6 @@ export function LastActivityCard({
               </span>
             </div>
           </div>
-        </div>
-
-        <div className="grid gap-3 border-t border-border pt-5 sm:grid-cols-2">
-          <Instruction title="Başlarken">{activity.intro}</Instruction>
-          <Instruction title="Amaç">{activity.purpose}</Instruction>
-          <Instruction title="Neden önemli?">{activity.whyItMatters}</Instruction>
-          <Instruction title="Daha kolay deneyin">{activity.easierVariation}</Instruction>
-          <Instruction title="Biraz zorlaştırın">{activity.harderVariation}</Instruction>
-          <Instruction title="Gözlem ipucu">{activity.observationTip}</Instruction>
         </div>
       </CardContent>
     </Card>

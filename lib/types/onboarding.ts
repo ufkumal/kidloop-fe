@@ -69,5 +69,34 @@ export interface IdentityResult {
   childName?: string | null
 }
 
+export interface ChildIdentityUpdate {
+  childId: string
+  fullName: string | null
+  displayName: string | null
+  birthDate: string
+  ageMonths: number
+  ageBand: string
+  gender: string | null
+  questionnaireRestarted: boolean
+}
+
+/** GET /api/children/{childId}/onboarding/daily-time-budget */
+export interface DailyTimeBudgetOption {
+  code: string
+  label: string
+  displayOrder: number
+  minMinutes: number
+  maxMinutes: number
+}
+
+export interface DailyTimeBudgetQuestion {
+  questionCode: string
+  question: string
+  selectedOptionCode: string | null
+  minMinutes: number | null
+  maxMinutes: number | null
+  options: DailyTimeBudgetOption[]
+}
+
 /** Ham API yanıtları için gevşek tipler */
 export type RawRecord = Record<string, unknown>

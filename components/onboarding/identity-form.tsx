@@ -9,9 +9,46 @@ import { LoadingState } from '@/components/common/loading-state'
 import { SubmitButton } from '@/components/common/submit-button'
 import { Card, CardContent } from '@/components/ui/card'
 import { FieldGroup } from '@/components/ui/field'
-import { fetchIdentityQuestions, submitIdentityAnswers } from '@/lib/api/onboarding'
+import {
+  fetchIdentityQuestions,
+  submitIdentityAnswers,
+  updateChildIdentity,
+} from '@/lib/api/onboarding'
 import { useAuth } from '@/lib/auth/auth-context'
+import type { StoredChild } from '@/lib/auth/storage'
 import type { IdentityAnswers, NormalizedQuestion } from '@/lib/types/onboarding'
+
+function identityField(question: NormalizedQuestion): 'fullName' | 'birthDate' | 'gender' | null {
+  if (question.answerKey === 'fullName') return 'fullName'
+  if (question.answerKey === 'birthDate' || question.type === 'DATE') return 'birthDate'
+  if (question.answerKey === 'gender' || question.code === 'Q8') return 'gender'
+  if (question.type === 'TEXT') return 'fullName'
+  return null
+}
+
+function identityValueForQuestion(question: NormalizedQuestion, child: StoredChild | null): string {
+  const field = identityField(question)
+  if (field === 'fullName') return child?.fullName ?? child?.displayName ?? child?.childName ?? ''
+  if (field === 'birthDate') return child?.birthDate ?? ''
+  if (field === 'gender') return child?.gender ?? ''
+  return question.answeredValue ?? question.answeredOptionCode ?? ''
+}
+
+function identityPayloadFromAnswers(answers: IdentityAnswers, questions: NormalizedQuestion[]) {
+  const values: { fullName: string | null; birthDate: string; gender: string | null } = {
+    fullName: null,
+    birthDate: '',
+    gender: null,
+  }
+  for (const question of questions) {
+    const field = identityField(question)
+    if (!field) continue
+    const value = answers[question.code]?.trim() ?? ''
+    if (field === 'birthDate') values.birthDate = value
+    else values[field] = value || null
+  }
+  return values
+}
 
 function validateAnswer(question: NormalizedQuestion, value: string): string | null {
   const trimmed = value.trim()
@@ -33,9 +70,16 @@ function validateAnswer(question: NormalizedQuestion, value: string): string | n
   return null
 }
 
-export function IdentityForm() {
+export function IdentityForm({
+  editChildId,
+  returnTo = '/profile',
+}: {
+  editChildId?: string
+  returnTo?: string
+} = {}) {
   const router = useRouter()
-  const { setActiveChild } = useAuth()
+  const { activeChild, resolveHomeStatus, setActiveChild } = useAuth()
+  const isEditing = Boolean(editChildId)
 
   const [questions, setQuestions] = useState<NormalizedQuestion[]>([])
   const [childId, setChildId] = useState<string | null>(null)
@@ -63,7 +107,9 @@ export function IdentityForm() {
           Object.fromEntries(
             result.questions.map((question) => [
               question.code,
-              question.answeredValue ?? question.answeredOptionCode ?? '',
+              isEditing
+                ? identityValueForQuestion(question, activeChild)
+                : (question.answeredValue ?? question.answeredOptionCode ?? ''),
             ]),
           ),
         )
@@ -77,7 +123,7 @@ export function IdentityForm() {
       })
 
     return () => controller.abort()
-  }, [attempt])
+  }, [attempt, isEditing, activeChild])
 
   const retry = useCallback(() => setAttempt((value) => value + 1), [])
 
@@ -94,9 +140,30 @@ export function IdentityForm() {
 
     setPending(true)
     try {
+      if (editChildId) {
+        const identity = identityPayloadFromAnswers(answers, questions)
+        const updated = await updateChildIdentity(editChildId, identity)
+        setActiveChild({
+          childId: updated.childId,
+          childName: updated.displayName ?? updated.fullName,
+          fullName: updated.fullName,
+          displayName: updated.displayName,
+          birthDate: updated.birthDate,
+          ageMonths: updated.ageMonths,
+          ageBand: updated.ageBand,
+          gender: updated.gender,
+        })
+        if (updated.questionnaireRestarted) {
+          const resolution = await resolveHomeStatus()
+          router.replace(resolution.path)
+        } else {
+          router.push(returnTo)
+        }
+        return
+      }
       const result = await submitIdentityAnswers({ childId, answers, questions })
       setActiveChild({ childId: result.childId, childName: result.childName })
-      router.push(`/onboarding/${encodeURIComponent(result.childId)}/questions`)
+      router.push(`/onboarding/${encodeURIComponent(result.childId)}/daily-time-budget`)
     } catch (cause) {
       setSubmitError(cause)
     } finally {
@@ -106,7 +173,19 @@ export function IdentityForm() {
 
   return (
     <div className="flex flex-col gap-8">
-      <OnboardingWelcome />
+      {isEditing ? (
+        <header className="flex flex-col gap-2">
+          <span className="text-xs font-semibold tracking-wide text-primary uppercase">
+            Çocuk profili
+          </span>
+          <h1 className="text-balance text-2xl font-bold sm:text-3xl">Kimlik bilgilerini düzenle</h1>
+          <p className="text-muted-foreground">
+            Doğum tarihi yaş bandını değiştirirse uygun soruları yeniden yanıtlaman gerekir.
+          </p>
+        </header>
+      ) : (
+        <OnboardingWelcome />
+      )}
 
       <Card className="rounded-3xl shadow-card ring-border [--card-spacing:--spacing(6)] sm:[--card-spacing:--spacing(8)]">
         <CardContent className="flex flex-col gap-6">
@@ -143,8 +222,8 @@ export function IdentityForm() {
 
               <ApiErrorAlert error={submitError} title="Bilgiler kaydedilemedi" />
 
-              <SubmitButton pending={pending} pendingLabel="Kaydediliyor…">
-                Devam et
+                <SubmitButton pending={pending} pendingLabel="Kaydediliyor…">
+                  {isEditing ? 'Değişiklikleri kaydet' : 'Devam et'}
               </SubmitButton>
             </form>
           )}

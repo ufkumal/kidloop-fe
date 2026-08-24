@@ -1,8 +1,9 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowRight } from 'lucide-react'
+import Link from 'next/link'
+import { ArrowRight, Pencil } from 'lucide-react'
 import { DynamicQuestionRenderer } from '@/components/onboarding/dynamic-question-renderer'
 import { OnboardingSidePanel } from '@/components/onboarding/onboarding-side-panel'
 import { QuestionProgress } from '@/components/onboarding/question-progress'
@@ -10,7 +11,12 @@ import { ApiErrorAlert } from '@/components/common/api-error-alert'
 import { LoadingState } from '@/components/common/loading-state'
 import { SubmitButton } from '@/components/common/submit-button'
 import { Card, CardContent } from '@/components/ui/card'
-import { fetchCurrentQuestionnaire, submitAnswer } from '@/lib/api/onboarding'
+import { Button } from '@/components/ui/button'
+import {
+  completeQuestionnaire,
+  fetchCurrentQuestionnaire,
+  submitAnswer,
+} from '@/lib/api/onboarding'
 import { useAuth } from '@/lib/auth/auth-context'
 import type { NormalizedQuestion, QuestionnaireState } from '@/lib/types/onboarding'
 
@@ -32,7 +38,10 @@ function resolveCurrentQuestion(
   }
 
   return (
-    state.questions.find((question) => !question.answeredOptionCode && !question.answeredValue) ??
+    state.questions.find(
+      (question) =>
+        question.required && !question.answeredOptionCode && !question.answeredValue,
+    ) ??
     null
   )
 }
@@ -54,8 +63,10 @@ export function QuestionnaireFlow({
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<unknown>(null)
   const [submitError, setSubmitError] = useState<unknown>(null)
+  const [completionError, setCompletionError] = useState<unknown>(null)
   const [pending, setPending] = useState(false)
   const [attempt, setAttempt] = useState(0)
+  const completionStarted = useRef(false)
 
   const completePath = `/onboarding/${encodeURIComponent(childId)}/complete`
 
@@ -104,10 +115,17 @@ export function QuestionnaireFlow({
    * ya da okunamayan bir liste döndüğünde de aynı duruma düşülür. Bu yüzden
    * yalnızca gerçek tamamlanma kanıtı varsa yönlendirme yapılır.
    */
+  const allRequiredAnswered = Boolean(
+    state &&
+      state.questions.length > 0 &&
+      state.questions
+        .filter((question) => question.required)
+        .every((question) => question.answeredOptionCode || question.answeredValue),
+  )
   const isComplete = Boolean(
     state &&
       !currentQuestion &&
-      (state.completed || (state.totalQuestions > 0 && state.answeredCount >= state.totalQuestions)),
+      (state.completed || (state.nextQuestionCode === null && allRequiredAnswered)),
   )
 
   // Sorular yüklendi ama gösterilecek/ tamamlanmış hiçbir şey yok: veri sorunu.
@@ -115,9 +133,22 @@ export function QuestionnaireFlow({
 
   useEffect(() => {
     if (!loading && isComplete) {
-      router.replace(completePath)
+      const consentsPath = `/onboarding/${encodeURIComponent(childId)}/consents`
+      if (state?.completed) {
+        router.replace(consentsPath)
+        return
+      }
+      if (completionStarted.current) return
+      completionStarted.current = true
+      setCompletionError(null)
+      void completeQuestionnaire(childId)
+        .then(() => router.replace(consentsPath))
+        .catch((cause: unknown) => {
+          completionStarted.current = false
+          setCompletionError(cause)
+        })
     }
-  }, [loading, isComplete, router, completePath])
+  }, [loading, isComplete, router, childId, state?.completed])
 
   const retry = useCallback(() => setAttempt((current) => current + 1), [])
 
@@ -137,10 +168,27 @@ export function QuestionnaireFlow({
     try {
       // Yanıt sonrası dönen güncel durum yerel veriyi tamamen değiştirir.
       const updated = await submitAnswer(childId, currentQuestion.code, value.trim())
-      setState(updated)
       if (isEditing) {
+        setState(updated)
         router.push(completePath)
+        return
       }
+
+      if (updated.nextQuestionCode === null) {
+        completionStarted.current = true
+        setState(updated)
+        try {
+          await completeQuestionnaire(childId)
+          router.replace(`/onboarding/${encodeURIComponent(childId)}/consents`)
+        } catch (cause) {
+          // Son cevap kaydedildi; yalnızca completion çağrısını kullanıcı isteğiyle yeniden dene.
+          completionStarted.current = true
+          setCompletionError(cause)
+        }
+        return
+      }
+
+      setState(updated)
     } catch (cause) {
       setSubmitError(cause)
     } finally {
@@ -163,6 +211,22 @@ export function QuestionnaireFlow({
               ? 'Seçimini güncelle ve cevaplarına geri dön'
               : 'Birkaç kısa soruyla önerileri kişiselleştirelim'}
           </h1>
+          {!isEditing ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="mt-1 w-fit"
+              nativeButton={false}
+              render={
+                <Link
+                  href={`/onboarding/${encodeURIComponent(childId)}/identity?returnTo=${encodeURIComponent(`/onboarding/${childId}/questions`)}`}
+                />
+              }
+            >
+              <Pencil data-icon="inline-start" />
+              Çocuk bilgilerini düzenle
+            </Button>
+          ) : null}
         </header>
 
         <QuestionProgress
@@ -184,7 +248,19 @@ export function QuestionnaireFlow({
                 onRetry={retry}
               />
             ) : !currentQuestion ? (
-              <LoadingState label="Tamamlama ekranına yönlendiriliyorsun…" variant="spinner" />
+              completionError ? (
+                <ApiErrorAlert
+                  error={completionError}
+                  title="Sorular tamamlanamadı"
+                  onRetry={() => {
+                    completionStarted.current = false
+                    setCompletionError(null)
+                    setAttempt((current) => current + 1)
+                  }}
+                />
+              ) : (
+                <LoadingState label="Sorular tamamlanıyor…" variant="spinner" />
+              )
             ) : (
               <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-8">
                 <DynamicQuestionRenderer

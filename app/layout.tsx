@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Analytics } from '@vercel/analytics/next'
 import { Nunito, Baloo_2 } from 'next/font/google'
 import { AuthProvider } from '@/lib/auth/auth-context'
+import { AppBootstrap } from '@/components/auth/app-bootstrap'
 import './globals.css'
 
 const _nunito = Nunito({ subsets: ['latin'] })
@@ -31,7 +32,9 @@ export default function RootLayout({
   return (
     <html lang="tr" className="bg-background">
       <body className="font-sans antialiased">
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <AppBootstrap>{children}</AppBootstrap>
+        </AuthProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>

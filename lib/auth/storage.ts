@@ -2,6 +2,7 @@ import type { AuthSession, UserRole } from '@/lib/types/auth'
 
 const SESSION_KEY = 'kidloop.auth.session'
 const CHILD_KEY = 'kidloop.onboarding.child'
+const SELECTED_ACTIVITY_KEY = 'kidloop.daily-plan.selected-activity'
 
 const ROLES: UserRole[] = ['PARENT', 'WORKSHOP', 'ADMIN']
 
@@ -59,6 +60,7 @@ export function clearSession() {
     try {
       store.removeItem(SESSION_KEY)
       store.removeItem(CHILD_KEY)
+      store.removeItem(SELECTED_ACTIVITY_KEY)
     } catch {
       /* yoksay */
     }
@@ -73,6 +75,12 @@ export function getStoredToken(): string | null {
 export interface StoredChild {
   childId: string
   childName?: string | null
+  fullName?: string | null
+  displayName?: string | null
+  birthDate?: string | null
+  ageMonths?: number | null
+  ageBand?: string | null
+  gender?: string | null
 }
 
 export function readActiveChild(): StoredChild | null {
@@ -82,7 +90,16 @@ export function readActiveChild(): StoredChild | null {
     if (!raw) return null
     const parsed = JSON.parse(raw) as Partial<StoredChild>
     if (!parsed?.childId) return null
-    return { childId: String(parsed.childId), childName: parsed.childName ?? null }
+    return {
+      childId: String(parsed.childId),
+      childName: parsed.childName ?? null,
+      fullName: parsed.fullName ?? null,
+      displayName: parsed.displayName ?? null,
+      birthDate: parsed.birthDate ?? null,
+      ageMonths: typeof parsed.ageMonths === 'number' ? parsed.ageMonths : null,
+      ageBand: parsed.ageBand ?? null,
+      gender: parsed.gender ?? null,
+    }
   } catch {
     return null
   }

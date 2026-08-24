@@ -2,14 +2,15 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowRight, Check, ChevronRight, CircleCheck } from 'lucide-react'
+import Link from 'next/link'
+import { ArrowRight, Check, ChevronRight, CircleCheck, Pencil } from 'lucide-react'
 import { QuestionProgress } from '@/components/onboarding/question-progress'
 import { ApiErrorAlert } from '@/components/common/api-error-alert'
 import { LoadingState } from '@/components/common/loading-state'
 import { SubmitButton } from '@/components/common/submit-button'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { fetchCurrentQuestionnaire } from '@/lib/api/onboarding'
+import { completeQuestionnaire, fetchCurrentQuestionnaire } from '@/lib/api/onboarding'
 import type { NormalizedQuestion, QuestionnaireState } from '@/lib/types/onboarding'
 
 function isAnswered(question: NormalizedQuestion) {
@@ -30,6 +31,8 @@ export function QuestionnaireComplete({ childId }: { childId: string }) {
   const [state, setState] = useState<QuestionnaireState | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<unknown>(null)
+  const [submitError, setSubmitError] = useState<unknown>(null)
+  const [pending, setPending] = useState(false)
   const [attempt, setAttempt] = useState(0)
 
   const questionsPath = `/onboarding/${encodeURIComponent(childId)}/questions`
@@ -53,6 +56,19 @@ export function QuestionnaireComplete({ childId }: { childId: string }) {
   }, [childId, attempt])
 
   const retry = useCallback(() => setAttempt((current) => current + 1), [])
+
+  async function handleComplete() {
+    setSubmitError(null)
+    setPending(true)
+    try {
+      await completeQuestionnaire(childId)
+      router.push(`/onboarding/${encodeURIComponent(childId)}/consents`)
+    } catch (cause) {
+      setSubmitError(cause)
+    } finally {
+      setPending(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -84,6 +100,20 @@ export function QuestionnaireComplete({ childId }: { childId: string }) {
         <p className="max-w-xl text-pretty leading-relaxed text-muted-foreground">
           Cevaplarını gözden geçir. Onayladığında çocuğuna özel plan hazırlığını başlatacağız.
         </p>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-fit"
+          nativeButton={false}
+          render={
+            <Link
+              href={`/onboarding/${encodeURIComponent(childId)}/identity?returnTo=${encodeURIComponent(`/onboarding/${childId}/complete`)}`}
+            />
+          }
+        >
+          <Pencil data-icon="inline-start" />
+          Çocuk bilgilerini düzenle
+        </Button>
       </header>
 
       <Card className="rounded-3xl shadow-card ring-border [--card-spacing:--spacing(6)] sm:[--card-spacing:--spacing(8)]">
@@ -154,10 +184,9 @@ export function QuestionnaireComplete({ childId }: { childId: string }) {
             </div>
           ) : null}
 
-          <SubmitButton
-            type="button"
-            onClick={() => router.push(`/onboarding/${encodeURIComponent(childId)}/consents`)}
-          >
+          <ApiErrorAlert error={submitError} title="Sorular tamamlanamadı" />
+
+          <SubmitButton type="button" pending={pending} pendingLabel="Tamamlanıyor…" onClick={handleComplete}>
             İzinlere devam et
             <ArrowRight data-icon="inline-end" />
           </SubmitButton>

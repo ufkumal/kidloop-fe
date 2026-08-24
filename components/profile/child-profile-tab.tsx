@@ -11,6 +11,7 @@ import { OnboardingAnswersCard } from '@/components/profile/onboarding-answers-c
 import { SuggestedActivityCard } from '@/components/profile/suggested-activity-card'
 import { Button } from '@/components/ui/button'
 import { fetchActivityHistory } from '@/lib/api/profile'
+import { useAuth } from '@/lib/auth/auth-context'
 import {
   Empty,
   EmptyContent,
@@ -70,6 +71,7 @@ function ActivityList({
 
 /** Tek veya çok çocuklu ebeveyn durumlarını aynı düzenle karşılar. */
 export function ChildProfileTab({ childProfiles }: { childProfiles: ChildProfile[] }) {
+  const { setActiveChild } = useAuth()
   const [activeChildId, setActiveChildId] = useState(
     childProfiles[0]?.summary.childId ?? '',
   )
@@ -79,6 +81,18 @@ export function ChildProfileTab({ childProfiles }: { childProfiles: ChildProfile
 
   const activeProfile =
     childProfiles.find((profile) => profile.summary.childId === activeChildId) ?? childProfiles[0]
+
+  useEffect(() => {
+    if (!activeProfile) return
+    setActiveChild({
+      childId: activeProfile.summary.childId,
+      childName: activeProfile.summary.name,
+      fullName: activeProfile.summary.name,
+      displayName: activeProfile.summary.name,
+      birthDate: activeProfile.summary.birthDate,
+      gender: activeProfile.summary.gender,
+    })
+  }, [activeProfile, setActiveChild])
 
   const retryActivities = useCallback(() => {
     setActivitiesError(null)

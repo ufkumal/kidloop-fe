@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowRight, Clock, Eye, Gauge, Sparkles, Target } from 'lucide-react'
+import { ArrowRight, Check, Clock, Sparkles, Target } from 'lucide-react'
 import { ApiErrorAlert } from '@/components/common/api-error-alert'
 import { SubmitButton } from '@/components/common/submit-button'
 import { Badge } from '@/components/ui/badge'
@@ -15,6 +15,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { selectTodayActivity } from '@/lib/api/daily-plan'
+import { writeSelectedActivity } from '@/lib/plan/selected-activity-storage'
 import type { DailyPlanActivity } from '@/lib/types/daily-plan'
 import { cn } from '@/lib/utils'
 
@@ -50,7 +51,7 @@ function DetailSection({
       </span>
       <div className="min-w-0">
         <h3 className="font-heading font-bold">{title}</h3>
-        <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{children}</p>
+        <div className="mt-1 text-sm leading-relaxed text-muted-foreground">{children}</div>
       </div>
     </section>
   )
@@ -76,7 +77,14 @@ export function PlanPreviewCard({
     setSelectionError(null)
 
     try {
-      await selectTodayActivity(childId, activity.activityId)
+      const plan = await selectTodayActivity(childId, activity.activityId)
+      const selectedActivity = plan.activities.find(
+        (item) => item.activityId === activity.activityId && item.selected,
+      )
+      if (!selectedActivity) {
+        throw new Error('Seçilen etkinlik yanıt içinde bulunamadı.')
+      }
+      writeSelectedActivity(childId, selectedActivity)
       router.push('/activity-selected')
     } catch (cause) {
       setSelectionError(cause)
@@ -137,7 +145,7 @@ export function PlanPreviewCard({
               </span>
             </div>
             <DialogTitle>{activity.title}</DialogTitle>
-            <DialogDescription>{activity.intro || activity.description}</DialogDescription>
+            <DialogDescription>{activity.description}</DialogDescription>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
@@ -147,17 +155,22 @@ export function PlanPreviewCard({
             <DetailSection icon={<Sparkles className="size-4" />} title="Neden önemli?">
               {activity.whyItMatters}
             </DetailSection>
-            <DetailSection icon={<Gauge className="size-4" />} title="Daha kolay deneyin">
-              {activity.easierVariation}
-            </DetailSection>
-            <DetailSection icon={<ArrowRight className="size-4" />} title="Biraz zorlaştırın">
-              {activity.harderVariation}
-            </DetailSection>
           </div>
 
-          <DetailSection icon={<Eye className="size-4" />} title="Gözlem ipucu">
-            {activity.observationTip}
-          </DetailSection>
+          {activity.outcomes.length ? (
+            <DetailSection icon={<Check className="size-4" />} title="Kazanımlar">
+              <ul className="flex flex-col gap-1.5">
+                {[...activity.outcomes]
+                  .sort((left, right) => left.displayOrder - right.displayOrder)
+                  .map((item) => (
+                    <li key={`${item.displayOrder}-${item.outcome}`} className="flex gap-2">
+                      <Check className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+                      <span>{item.outcome}</span>
+                    </li>
+                  ))}
+              </ul>
+            </DetailSection>
+          ) : null}
 
           <div className="flex flex-col gap-3 border-t border-border pt-5">
             <ApiErrorAlert error={selectionError} title="Etkinlik seçilemedi" />

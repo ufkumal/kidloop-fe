@@ -3,7 +3,9 @@ import type {
   ActivityFeedback,
   ActivityFeedbackType,
   HomeStatus,
+  HomeStatusChild,
   LatestActivity,
+  OnboardingStep,
 } from '@/lib/types/home'
 
 const FEEDBACK_TYPES: ActivityFeedbackType[] = ['LIKED', 'STRUGGLED', 'DISLIKED']
@@ -99,6 +101,41 @@ function invalid(response: unknown): never {
   throw new ApiError('Ana sayfa durumu alınamadı. Lütfen tekrar dene.', 502, response)
 }
 
+const ONBOARDING_STEPS: OnboardingStep[] = [
+  'DAILY_TIME_BUDGET',
+  'QUESTIONNAIRE',
+  'CONSENTS',
+]
+
+function parseChild(value: unknown): HomeStatusChild | null {
+  if (!value || typeof value !== 'object') return null
+  const child = value as Record<string, unknown>
+  if (
+    !isNumber(child.childId) ||
+    !(child.fullName == null || typeof child.fullName === 'string') ||
+    !(child.displayName == null || typeof child.displayName === 'string') ||
+    typeof child.birthDate !== 'string' ||
+    Number.isNaN(Date.parse(child.birthDate)) ||
+    !isNumber(child.ageMonths) ||
+    typeof child.ageBand !== 'string' ||
+    !(child.gender == null || typeof child.gender === 'string')
+  ) {
+    return null
+  }
+  return {
+    childId: child.childId,
+    fullName: typeof child.fullName === 'string' && child.fullName.trim() ? child.fullName.trim() : null,
+    displayName:
+      typeof child.displayName === 'string' && child.displayName.trim()
+        ? child.displayName.trim()
+        : null,
+    birthDate: child.birthDate,
+    ageMonths: child.ageMonths,
+    ageBand: child.ageBand,
+    gender: typeof child.gender === 'string' ? child.gender : null,
+  }
+}
+
 /** Authenticated parent'ın ana sayfa deneyimini backend'den getirir. */
 export async function fetchHomeStatus(signal?: AbortSignal): Promise<HomeStatus> {
   const response = await apiRequest<unknown>('/api/home/status', { auth: true, signal })
@@ -109,6 +146,35 @@ export async function fetchHomeStatus(signal?: AbortSignal): Promise<HomeStatus>
     return typeof status.shouldGenerateDailyPlan === 'boolean'
       ? { state: 'new-user', shouldGenerateDailyPlan: status.shouldGenerateDailyPlan }
       : { state: 'new-user' }
+  }
+
+  if (status.state === 'half-onboarding-user') {
+    const child = parseChild(status.child)
+    if (
+      !child ||
+      !isNumber(status.childId) ||
+      status.childId !== child.childId ||
+      typeof status.childName !== 'string' ||
+      !status.childName.trim() ||
+      typeof status.onboardingStep !== 'string' ||
+      !ONBOARDING_STEPS.includes(status.onboardingStep as OnboardingStep) ||
+      !(status.nextQuestionCode == null || typeof status.nextQuestionCode === 'string') ||
+      !(status.nextConsentId == null || isNumber(status.nextConsentId)) ||
+      status.shouldGenerateDailyPlan !== false
+    ) {
+      invalid(response)
+    }
+    return {
+      state: 'half-onboarding-user',
+      childId: status.childId,
+      childName: child.displayName ?? child.fullName ?? status.childName.trim(),
+      child,
+      onboardingStep: status.onboardingStep as OnboardingStep,
+      nextQuestionCode:
+        typeof status.nextQuestionCode === 'string' ? status.nextQuestionCode : null,
+      nextConsentId: isNumber(status.nextConsentId) ? status.nextConsentId : null,
+      shouldGenerateDailyPlan: false,
+    }
   }
 
   if (
@@ -145,7 +211,6 @@ export async function fetchHomeStatus(signal?: AbortSignal): Promise<HomeStatus>
 
   if (
     status.state === 'returning-user' &&
-    status.shouldGenerateDailyPlan === true &&
     (!latestActivity ||
       (latestActivity.completedAt !== null &&
         latestActivity.feedbackSubmitted === true &&
@@ -155,7 +220,7 @@ export async function fetchHomeStatus(signal?: AbortSignal): Promise<HomeStatus>
       state: 'returning-user',
       childId: status.childId,
       childName: status.childName.trim(),
-      shouldGenerateDailyPlan: true,
+      shouldGenerateDailyPlan: status.shouldGenerateDailyPlan,
       latestActivity,
     }
   }

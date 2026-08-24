@@ -1,16 +1,18 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { ArrowRight, ChevronDown, ShieldCheck } from 'lucide-react'
+import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { ArrowRight, ChevronDown, Pencil, ShieldCheck } from 'lucide-react'
 import { ApiErrorAlert } from '@/components/common/api-error-alert'
 import { LoadingState } from '@/components/common/loading-state'
 import { SubmitButton } from '@/components/common/submit-button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { completeQuestionnaire } from '@/lib/api/onboarding'
 import { fetchConsents, updateConsent } from '@/lib/api/consents'
+import { useAuth } from '@/lib/auth/auth-context'
 import type { Consent } from '@/lib/types/consent'
 import { cn } from '@/lib/utils'
 
@@ -36,6 +38,8 @@ function ConsentContent({ content }: { content: string }) {
 
 export function ConsentStep({ childId }: { childId: string }) {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const { resolveHomeStatus } = useAuth()
   const [consents, setConsents] = useState<Consent[]>([])
   const [decisions, setDecisions] = useState<Record<number, boolean>>({})
   const [expandedId, setExpandedId] = useState<number | null>(null)
@@ -56,6 +60,16 @@ export function ConsentStep({ childId }: { childId: string }) {
         setDecisions(
           Object.fromEntries(items.map((consent) => [consent.consentId, consent.granted === true])),
         )
+        const requestedConsentId = Number(searchParams.get('consentId'))
+        const firstRequiredMissing = items.find(
+          (consent) => consent.required && consent.granted !== true,
+        )
+        setExpandedId(
+          Number.isFinite(requestedConsentId) &&
+            items.some((consent) => consent.consentId === requestedConsentId)
+            ? requestedConsentId
+            : (firstRequiredMissing?.consentId ?? null),
+        )
       })
       .catch((cause: unknown) => {
         if (!controller.signal.aborted) setLoadError(cause)
@@ -65,7 +79,7 @@ export function ConsentStep({ childId }: { childId: string }) {
       })
 
     return () => controller.abort()
-  }, [attempt])
+  }, [attempt, searchParams])
 
   const retry = useCallback(() => setAttempt((current) => current + 1), [])
   const requiredComplete = useMemo(
@@ -76,9 +90,21 @@ export function ConsentStep({ childId }: { childId: string }) {
     [consents, decisions],
   )
 
-  function toggleConsent(consent: Consent, checked: boolean) {
+  async function toggleConsent(consent: Consent, checked: boolean) {
+    if (pending) return
+    const previous = decisions[consent.consentId] === true
     setDecisions((current) => ({ ...current, [consent.consentId]: checked }))
     setExpandedId(consent.consentId)
+    setSubmitError(null)
+    setPending(true)
+    try {
+      await updateConsent(consent.consentId, { granted: checked })
+    } catch (cause) {
+      setDecisions((current) => ({ ...current, [consent.consentId]: previous }))
+      setSubmitError(cause)
+    } finally {
+      setPending(false)
+    }
   }
 
   async function handleComplete() {
@@ -87,13 +113,21 @@ export function ConsentStep({ childId }: { childId: string }) {
     setPending(true)
 
     try {
-      await Promise.all(
-        consents.map((consent) =>
-          updateConsent(consent.consentId, { granted: decisions[consent.consentId] === true }),
-        ),
-      )
-      await completeQuestionnaire(childId)
-      router.push('/plan-ready')
+      const resolution = await resolveHomeStatus()
+      if (
+        resolution.status.state === 'half-onboarding-user' &&
+        resolution.status.onboardingStep === 'CONSENTS'
+      ) {
+        setAttempt((current) => current + 1)
+      }
+      if (
+        resolution.status.state === 'returning-user' &&
+        resolution.status.shouldGenerateDailyPlan
+      ) {
+        router.replace('/plan-ready')
+      } else {
+        router.replace(resolution.path)
+      }
     } catch (cause) {
       setSubmitError(cause)
     } finally {
@@ -128,6 +162,20 @@ export function ConsentStep({ childId }: { childId: string }) {
         <p className="max-w-xl text-pretty leading-relaxed text-muted-foreground">
           Planını hazırlamadan önce aşağıdaki metinleri inceleyip tercihlerini belirt.
         </p>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-fit"
+          nativeButton={false}
+          render={
+            <Link
+              href={`/onboarding/${encodeURIComponent(childId)}/identity?returnTo=${encodeURIComponent(`/onboarding/${childId}/consents`)}`}
+            />
+          }
+        >
+          <Pencil data-icon="inline-start" />
+          Çocuk bilgilerini düzenle
+        </Button>
       </header>
 
       <Card className="rounded-3xl shadow-card ring-border [--card-spacing:--spacing(6)] sm:[--card-spacing:--spacing(8)]">
@@ -152,7 +200,8 @@ export function ConsentStep({ childId }: { childId: string }) {
                     <Checkbox
                       id={`consent-${consent.consentId}`}
                       checked={checked}
-                      onCheckedChange={(value) => toggleConsent(consent, value === true)}
+                      disabled={pending}
+                      onCheckedChange={(value) => void toggleConsent(consent, value === true)}
                       aria-label={`${consent.title} izni`}
                       className="mt-0.5 size-5"
                     />
@@ -213,11 +262,11 @@ export function ConsentStep({ childId }: { childId: string }) {
           <SubmitButton
             type="button"
             pending={pending}
-            pendingLabel="Planın hazırlanıyor…"
+            pendingLabel="İzinler kaydediliyor…"
             disabled={!requiredComplete}
             onClick={handleComplete}
           >
-            Planımı hazırla
+            Devam et
             <ArrowRight data-icon="inline-end" />
           </SubmitButton>
 

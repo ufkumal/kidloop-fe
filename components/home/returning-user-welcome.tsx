@@ -10,7 +10,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { useAuth } from '@/lib/auth/auth-context'
 import type { FeedbackQuestion, HomeStatus } from '@/lib/types/home'
 
-type ReturningStatus = Exclude<HomeStatus, { state: 'new-user' }>
+type ReturningStatus = Extract<HomeStatus, { state: 'feedback-required' | 'returning-user' }>
 
 const FEEDBACK_LABELS = {
   LIKED: 'Beğendi',
@@ -33,7 +33,7 @@ export function ReturningUserWelcome({
   const { setActiveChild } = useAuth()
   const [navigating, setNavigating] = useState(false)
   function handleGeneratePlan() {
-    if (navigating) return
+    if (navigating || !status.shouldGenerateDailyPlan) return
     setNavigating(true)
     setActiveChild({ childId: String(status.childId), childName: status.childName })
     router.push('/plan-ready')
@@ -58,7 +58,11 @@ export function ReturningUserWelcome({
 
         <LastActivityCard activity={activity} />
 
-        <section aria-labelledby="feedback-heading" className="flex flex-col gap-4">
+        <section
+          id="feedback"
+          aria-labelledby="feedback-heading"
+          className="flex scroll-mt-6 flex-col gap-4"
+        >
           <h2 id="feedback-heading" className="font-heading text-xl font-bold">
             Geri bildirimin
           </h2>
@@ -122,12 +126,15 @@ export function ReturningUserWelcome({
       <section className="flex flex-col items-start gap-3 rounded-3xl border border-border bg-card p-6 shadow-soft sm:p-8">
         <h2 className="font-heading text-xl font-bold">Bugünün oyununu keşfet</h2>
         <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-          Günlük planını aç, size uygun öneriler arasından bir etkinlik seç.
+          {status.shouldGenerateDailyPlan
+            ? 'Günlük planını aç, size uygun öneriler arasından bir etkinlik seç.'
+            : 'Bugün için yeni bir plan hazırlama zamanı henüz gelmedi.'}
         </p>
         <SubmitButton
           type="button"
           pending={navigating}
           pendingLabel="Plan açılıyor…"
+          disabled={!status.shouldGenerateDailyPlan}
           onClick={handleGeneratePlan}
           className="mt-1 w-full sm:w-fit sm:px-6"
         >

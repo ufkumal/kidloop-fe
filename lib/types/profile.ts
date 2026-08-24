@@ -10,6 +10,9 @@ export interface ChildProfileSummary {
   avatarUrl?: string | null
   ageLabel?: string | null
   birthDateLabel?: string | null
+  /** API düzenleme formu için ham YYYY-MM-DD değeri. */
+  birthDate?: string | null
+  gender?: string | null
   /** Kısa özet etiketleri: "5 yaş", "Hareketli oyunları seviyor" vb. */
   highlights: string[]
 }
