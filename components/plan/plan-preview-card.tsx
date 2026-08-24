@@ -70,16 +70,25 @@ export function PlanPreviewCard({
   const tone = TONES[index % TONES.length]
   const [pending, setPending] = useState(false)
   const [selectionError, setSelectionError] = useState<unknown>(null)
+  const isCompleted = Boolean(activity.completedAt)
+  const isSelected = Boolean(activity.selectedAt)
 
   async function handleSelect() {
-    if (pending) return
+    if (pending || isCompleted) return
+
+    if (isSelected) {
+      writeSelectedActivity(childId, activity)
+      router.push('/activity-selected')
+      return
+    }
+
     setPending(true)
     setSelectionError(null)
 
     try {
       const plan = await selectTodayActivity(childId, activity.activityId)
       const selectedActivity = plan.activities.find(
-        (item) => item.activityId === activity.activityId && item.selected,
+        (item) => item.activityId === activity.activityId,
       )
       if (!selectedActivity) {
         throw new Error('Seçilen etkinlik yanıt içinde bulunamadı.')
@@ -98,7 +107,14 @@ export function PlanPreviewCard({
         aria-label={`${activity.title} etkinliğinin detaylarını gör`}
         className="group block h-full w-full rounded-3xl text-left focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/40"
       >
-        <Card className="h-full rounded-3xl shadow-soft ring-border transition-all group-hover:-translate-y-0.5 group-hover:shadow-card group-focus-visible:ring-primary">
+        <Card
+          className={cn(
+            'h-full rounded-3xl shadow-soft ring-border transition-all group-focus-visible:ring-primary',
+            isCompleted
+              ? 'opacity-50 grayscale-[35%]'
+              : 'group-hover:-translate-y-0.5 group-hover:shadow-card',
+          )}
+        >
           <CardHeader className="gap-3">
             <span
               aria-hidden="true"
@@ -179,13 +195,22 @@ export function PlanPreviewCard({
               pending={pending}
               pendingLabel="Etkinlik seçiliyor…"
               className="w-full sm:w-fit sm:px-6"
+              disabled={isCompleted}
               onClick={handleSelect}
             >
-              Bu etkinliği seç
-              <ArrowRight data-icon="inline-end" />
+              {isCompleted
+                ? 'Etkinlik tamamlandı'
+                : isSelected
+                  ? 'Etkinlik detaylarını incele'
+                  : 'Bu etkinliği seç'}
+              {!isCompleted ? <ArrowRight data-icon="inline-end" /> : null}
             </SubmitButton>
             <p className="text-xs leading-relaxed text-muted-foreground">
-              Seçtikten sonra etkinlik için hazırlık ekranına geçeceksin.
+              {isCompleted
+                ? 'Bu etkinliği bugün tamamladın.'
+                : isSelected
+                  ? 'Seçtiğin etkinliğin hazırlık ve uygulama detaylarına devam edebilirsin.'
+                  : 'Seçtikten sonra etkinlik için hazırlık ekranına geçeceksin.'}
             </p>
           </div>
         </div>
