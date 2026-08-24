@@ -2,51 +2,48 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { NewUserWelcome } from '@/components/home/new-user-welcome'
+import { HalfOnboardingReminder } from '@/components/home/half-onboarding-reminder'
 import { ReturningUserWelcome } from '@/components/home/returning-user-welcome'
 import { ApiErrorAlert } from '@/components/common/api-error-alert'
 import { LoadingState } from '@/components/common/loading-state'
-import { fetchHomeStatus } from '@/lib/api/home'
 import { fetchFeedbackQuestions } from '@/lib/api/feedback'
-import type { FeedbackQuestion, HomeStatus } from '@/lib/types/home'
+import { useAuth } from '@/lib/auth/auth-context'
+import type { FeedbackQuestion } from '@/lib/types/home'
 
 export function HomeView() {
   const router = useRouter()
-  const [homeStatus, setHomeStatus] = useState<HomeStatus | null>(null)
+  const { homeStatus, resolveHomeStatus } = useAuth()
   const [questions, setQuestions] = useState<FeedbackQuestion[]>([])
   const [error, setError] = useState<unknown>(null)
-  const [requestVersion, setRequestVersion] = useState(0)
 
   const retry = useCallback(() => {
     setError(null)
-    setHomeStatus(null)
     setQuestions([])
-    setRequestVersion((version) => version + 1)
-  }, [])
+    void resolveHomeStatus()
+      .then((resolution) => router.replace(resolution.path))
+      .catch(setError)
+  }, [resolveHomeStatus, router])
 
   useEffect(() => {
-    const controller = new AbortController()
+    if (homeStatus || error) return
+    retry()
+  }, [homeStatus, error, retry])
 
-    async function loadHomeStatus() {
-      try {
-        const response = await fetchHomeStatus(controller.signal)
-        if (response.state === 'feedback-required') {
-          const feedbackQuestions = await fetchFeedbackQuestions(controller.signal)
-          setQuestions(feedbackQuestions)
-        }
-        setHomeStatus(response)
-      } catch (requestError) {
+  useEffect(() => {
+    if (homeStatus?.state !== 'feedback-required') {
+      setQuestions([])
+      return
+    }
+    const controller = new AbortController()
+    void fetchFeedbackQuestions(controller.signal)
+      .then(setQuestions)
+      .catch((requestError: unknown) => {
         if (requestError instanceof DOMException && requestError.name === 'AbortError') return
         setError(requestError)
-      }
-    }
-
-    void loadHomeStatus()
+      })
     return () => controller.abort()
-  }, [requestVersion])
-
-  useEffect(() => {
-    if (homeStatus?.state === 'new-user') router.replace('/onboarding/identity')
-  }, [homeStatus, router])
+  }, [homeStatus])
 
   if (error) {
     return (
@@ -63,7 +60,11 @@ export function HomeView() {
   }
 
   if (homeStatus.state === 'new-user') {
-    return <LoadingState label="Çocuk profilini oluşturmaya yönlendiriliyorsun…" />
+    return <NewUserWelcome />
+  }
+
+  if (homeStatus.state === 'half-onboarding-user') {
+    return <HalfOnboardingReminder status={homeStatus} />
   }
 
   return (

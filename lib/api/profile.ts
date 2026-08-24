@@ -109,6 +109,8 @@ function normalizeChild(value: unknown): ChildProfile | null {
       avatarUrl: null,
       ageLabel,
       birthDateLabel: formatDate(optionalString(value.birthDate)),
+      birthDate: optionalString(value.birthDate) || null,
+      gender: optionalString(value.gender) || null,
       highlights: [ageLabel, gender, preference].filter((item): item is string => Boolean(item)),
     },
     onboardingAnswers: normalizeAnswers(value.onboardingAnswers),

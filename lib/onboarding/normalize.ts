@@ -155,7 +155,7 @@ export function normalizeQuestionnaire(payload: unknown): QuestionnaireState {
     completed:
       completedFlag !== undefined
         ? Boolean(completedFlag)
-        : nextQuestionCode === null && totalQuestions > 0 && answeredCount >= totalQuestions,
+        : false,
   }
 }
 

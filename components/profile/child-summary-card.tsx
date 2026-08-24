@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import type { ChildProfileSummary } from '@/lib/types/profile'
 
-/** Seçili çocuğun özet kartı. "Profili düzenle" şimdilik yalnızca tasarımsal. */
+/** Seçili çocuğun özet kartı. */
 export function ChildSummaryCard({ child }: { child: ChildProfileSummary }) {
   return (
     <Card className="rounded-3xl shadow-soft ring-border [--card-spacing:--spacing(5)] sm:[--card-spacing:--spacing(6)]">
@@ -46,13 +46,12 @@ export function ChildSummaryCard({ child }: { child: ChildProfileSummary }) {
           </div>
         </div>
 
-        {/* Ayrı bir düzenleme ekranı yok; mevcut onboarding kimlik adımı kullanılır. */}
         <Button
           variant="secondary"
           size="sm"
           className="h-11 shrink-0 rounded-xl px-4"
           nativeButton={false}
-          render={<Link href="/onboarding/identity" />}
+          render={<Link href={`/onboarding/${encodeURIComponent(child.childId)}/identity`} />}
         >
           <Pencil data-icon="inline-start" />
           Profili düzenle

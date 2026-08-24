@@ -6,6 +6,8 @@ import {
   normalizeQuestionnaire,
 } from '@/lib/onboarding/normalize'
 import type {
+  ChildIdentityUpdate,
+  DailyTimeBudgetQuestion,
   IdentityAnswers,
   IdentityResult,
   NormalizedQuestion,
@@ -16,6 +18,8 @@ import type {
  * Backend sözleşmesinde tanımlı uçlar:
  * - GET  /api/onboarding/identity-questions
  * - POST /api/children   body: identity question answers
+ * - GET  /api/children/{childId}/onboarding/daily-time-budget
+ * - PUT  /api/children/{childId}/onboarding/daily-time-budget   body: { optionCode }
  * - GET  /api/children/{childId}/questionnaire/current
  * - PUT  /api/children/{childId}/questionnaire/answers/{questionCode}   body: { optionCode }
  * - POST /api/children/{childId}/questionnaire/complete
@@ -71,8 +75,8 @@ export async function submitAnswer(
 
 /**
  * Kimlik sorularındaki cevaplardan çocuk profili oluşturur. Alan adları API'nin
- * `answerKey` değeriyle belirlenir. Günlük süre sorusu halen `answerKey` olmadan
- * döndüğü için bilinen soru kodu çocuk oluşturma alanına eşlenir.
+ * `answerKey` değeriyle belirlenir; günlük süre tercihi çocuk oluşturulduktan
+ * sonra çocuğa özel daily-time-budget ucuna ayrı olarak gönderilir.
  */
 export async function submitIdentityAnswers(input: {
   childId: string | null
@@ -115,12 +119,120 @@ export async function submitIdentityAnswers(input: {
   }
 }
 
+/** Mevcut çocuk kimliğini günceller; yaş bandı değişirse backend questionnaire'ı sıfırlar. */
+export async function updateChildIdentity(
+  childId: string,
+  input: { fullName: string | null; birthDate: string; gender: string | null },
+): Promise<ChildIdentityUpdate> {
+  const payload = await apiRequest<unknown>(`/api/children/${encodeURIComponent(childId)}`, {
+    method: 'PUT',
+    auth: true,
+    body: input,
+  })
+  if (!isRecord(payload)) {
+    throw new ApiError('Çocuk bilgileri güncellenemedi. Lütfen tekrar dene.', 502, payload)
+  }
+
+  const responseChildId = requiredNumber(payload.childId)
+  const birthDate = requiredString(payload.birthDate)
+  const ageMonths = requiredNumber(payload.ageMonths)
+  const ageBand = requiredString(payload.ageBand)
+  if (
+    responseChildId === null ||
+    !birthDate ||
+    ageMonths === null ||
+    !ageBand ||
+    typeof payload.questionnaireRestarted !== 'boolean'
+  ) {
+    throw new ApiError('Güncellenen çocuk bilgileri eksik geldi.', 502, payload)
+  }
+
+  return {
+    childId: String(responseChildId),
+    fullName: requiredString(payload.fullName),
+    displayName: requiredString(payload.displayName),
+    birthDate,
+    ageMonths,
+    ageBand,
+    gender: requiredString(payload.gender),
+    questionnaireRestarted: payload.questionnaireRestarted,
+  }
+}
+
 function getIdentityPayloadField(question: NormalizedQuestion): string | null {
-  if (question.code === 'Q7') return 'dailyTimeBudgetOptionCode'
   if (question.code === 'Q8') return 'gender'
   if (question.type === 'DATE') return 'birthDate'
   if (question.type === 'TEXT') return 'fullName'
   return null
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+}
+
+function requiredString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+function requiredNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+/** Çocuğa özel günlük etkinlik süresi sorusunu ve seçeneklerini getirir. */
+export async function fetchOnboardingDailyTimeBudget(
+  childId: string,
+  signal?: AbortSignal,
+): Promise<DailyTimeBudgetQuestion> {
+  const payload = await apiRequest<unknown>(
+    `/api/children/${encodeURIComponent(childId)}/onboarding/daily-time-budget`,
+    { auth: true, signal },
+  )
+
+  if (!isRecord(payload) || !Array.isArray(payload.options)) {
+    throw new ApiError('Günlük zaman bütçesi sorusu alınamadı. Lütfen tekrar dene.', 502, payload)
+  }
+
+  const questionCode = requiredString(payload.questionCode)
+  const question = requiredString(payload.question)
+  const options = payload.options
+    .map((option) => {
+      if (!isRecord(option)) return null
+      const code = requiredString(option.code)
+      const label = requiredString(option.label)
+      const displayOrder = requiredNumber(option.displayOrder)
+      const minMinutes = requiredNumber(option.minMinutes)
+      const maxMinutes = requiredNumber(option.maxMinutes)
+      if (!code || !label || displayOrder === null || minMinutes === null || maxMinutes === null) {
+        return null
+      }
+      return { code, label, displayOrder, minMinutes, maxMinutes }
+    })
+    .filter((option): option is NonNullable<typeof option> => option !== null)
+    .sort((left, right) => left.displayOrder - right.displayOrder)
+
+  if (!questionCode || !question || options.length === 0) {
+    throw new ApiError('Günlük zaman bütçesi bilgileri eksik geldi.', 502, payload)
+  }
+
+  return {
+    questionCode,
+    question,
+    selectedOptionCode: requiredString(payload.selectedOptionCode),
+    minMinutes: requiredNumber(payload.minMinutes),
+    maxMinutes: requiredNumber(payload.maxMinutes),
+    options,
+  }
+}
+
+/** Çocuğa özel günlük etkinlik süresi seçimini kaydeder. */
+export async function updateOnboardingDailyTimeBudget(
+  childId: string,
+  optionCode: string,
+): Promise<void> {
+  await apiRequest<unknown>(
+    `/api/children/${encodeURIComponent(childId)}/onboarding/daily-time-budget`,
+    { method: 'PUT', auth: true, body: { optionCode } },
+  )
 }
 
 export async function fetchCurrentQuestionnaire(
@@ -137,6 +249,6 @@ export async function fetchCurrentQuestionnaire(
 export async function completeQuestionnaire(childId: string): Promise<unknown> {
   return apiRequest<unknown>(
     `/api/children/${encodeURIComponent(childId)}/questionnaire/complete`,
-    { method: 'POST', auth: true },
+    { method: 'POST', auth: true, body: {} },
   )
 }

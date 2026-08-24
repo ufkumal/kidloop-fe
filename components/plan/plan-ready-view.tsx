@@ -120,7 +120,7 @@ export function PlanReadyView() {
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {plan.activities.map((activity, index) => (
               <PlanPreviewCard
-                key={activity.activityId}
+                key={`${activity.dailyPlanItemId}-${activity.activityId}-${index}`}
                 activity={activity}
                 index={index}
                 childId={childId}

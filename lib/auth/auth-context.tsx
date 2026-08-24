@@ -2,7 +2,9 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { AuthSession } from '@/lib/types/auth'
+import type { HomeStatus } from '@/lib/types/home'
 import { UNAUTHORIZED_EVENT } from '@/lib/api/client'
+import { resolveInitialRoute, type InitialRouteResolution } from '@/lib/app/bootstrap'
 import {
   clearSession,
   readActiveChild,
@@ -18,10 +20,12 @@ interface AuthContextValue {
   isRestoring: boolean
   isAuthenticated: boolean
   activeChild: StoredChild | null
+  homeStatus: HomeStatus | null
   /** remember=false ise oturum yalnızca sekme açık kaldığı sürece saklanır */
   signIn: (session: AuthSession, remember?: boolean) => void
   signOut: () => void
   setActiveChild: (child: StoredChild) => void
+  resolveHomeStatus: () => Promise<InitialRouteResolution>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -29,6 +33,7 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<AuthSession | null>(null)
   const [activeChild, setActiveChildState] = useState<StoredChild | null>(null)
+  const [homeStatus, setHomeStatus] = useState<HomeStatus | null>(null)
   const [isRestoring, setIsRestoring] = useState(true)
 
   // Oturum durumu istemci tarafında güvenli şekilde geri yüklenir.
@@ -47,12 +52,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     clearSession()
     setSession(null)
     setActiveChildState(null)
+    setHomeStatus(null)
   }, [])
 
   const setActiveChild = useCallback((child: StoredChild) => {
     writeActiveChild(child)
     setActiveChildState(child)
   }, [])
+
+  const resolveHomeStatus = useCallback(async () => {
+    const resolution = await resolveInitialRoute()
+    setHomeStatus(resolution.status)
+    if (resolution.status.state !== 'new-user') {
+      const status = resolution.status
+      const child = status.state === 'half-onboarding-user' ? status.child : null
+      setActiveChild({
+        ...(activeChild?.childId === String(status.childId) ? activeChild : null),
+        childId: String(status.childId),
+        childName: status.childName,
+        ...(child
+          ? {
+              fullName: child.fullName,
+              displayName: child.displayName ?? status.childName,
+              birthDate: child.birthDate,
+              ageMonths: child.ageMonths,
+              ageBand: child.ageBand,
+              gender: child.gender,
+            }
+          : null),
+      })
+    }
+    return resolution
+  }, [activeChild, setActiveChild])
 
   // Token geçersizleştiğinde (401) oturum otomatik kapatılır; korumalı
   // sayfalar bu durumda kullanıcıyı /login ekranına yönlendirir.
@@ -68,11 +99,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isRestoring,
       isAuthenticated: Boolean(session?.token),
       activeChild,
+      homeStatus,
       signIn,
       signOut,
       setActiveChild,
+      resolveHomeStatus,
     }),
-    [session, isRestoring, activeChild, signIn, signOut, setActiveChild],
+    [session, isRestoring, activeChild, homeStatus, signIn, signOut, setActiveChild, resolveHomeStatus],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

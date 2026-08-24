@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { MailCheck } from 'lucide-react'
 import { AuthCard } from '@/components/auth/auth-card'
 import { PasswordInput } from '@/components/auth/password-input'
@@ -21,7 +20,6 @@ import { ACTION_BUTTON_CLASS, INPUT_CLASS } from '@/lib/ui'
 import { validateEmail, validatePassword } from '@/lib/validation/auth'
 
 export function LoginForm() {
-  const router = useRouter()
   const { signIn } = useAuth()
 
   const [email, setEmail] = useState('')
@@ -50,8 +48,7 @@ export function LoginForm() {
       signIn(session, remember)
 
       if (session.role === 'PARENT') {
-        // /home, backend'deki onboarding durumuna göre doğru karşılama ekranını açar.
-        router.replace('/home')
+        // AppBootstrap backend durumunu çözüp kaldığı adıma yönlendirir.
         return
       }
       setUnsupportedRole(true)

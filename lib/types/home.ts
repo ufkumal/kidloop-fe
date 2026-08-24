@@ -1,5 +1,21 @@
 /** Ana sayfa durum API'sinin desteklediği kullanıcı akışları. */
-export type HomeState = 'new-user' | 'feedback-required' | 'returning-user'
+export type HomeState =
+  | 'new-user'
+  | 'half-onboarding-user'
+  | 'feedback-required'
+  | 'returning-user'
+
+export type OnboardingStep = 'DAILY_TIME_BUDGET' | 'QUESTIONNAIRE' | 'CONSENTS'
+
+export interface HomeStatusChild {
+  childId: number
+  fullName: string | null
+  displayName: string | null
+  birthDate: string
+  ageMonths: number
+  ageBand: string
+  gender: string | null
+}
 
 export type ActivityFeedbackType = 'LIKED' | 'STRUGGLED' | 'DISLIKED'
 
@@ -37,6 +53,16 @@ export interface LatestActivity {
 export type HomeStatus =
   | { state: 'new-user'; shouldGenerateDailyPlan?: boolean }
   | {
+      state: 'half-onboarding-user'
+      childId: number
+      childName: string
+      child: HomeStatusChild
+      onboardingStep: OnboardingStep
+      nextQuestionCode: string | null
+      nextConsentId: number | null
+      shouldGenerateDailyPlan: false
+    }
+  | {
       state: 'feedback-required'
       childId: number
       childName: string
@@ -47,7 +73,7 @@ export type HomeStatus =
       state: 'returning-user'
       childId: number
       childName: string
-      shouldGenerateDailyPlan: true
+      shouldGenerateDailyPlan: boolean
       latestActivity: LatestActivity | null
     }
 
