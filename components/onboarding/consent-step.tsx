@@ -12,7 +12,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { fetchConsents, updateConsent } from '@/lib/api/consents'
-import { useAuth } from '@/lib/auth/auth-context'
 import type { Consent } from '@/lib/types/consent'
 import { cn } from '@/lib/utils'
 
@@ -39,7 +38,6 @@ function ConsentContent({ content }: { content: string }) {
 export function ConsentStep({ childId }: { childId: string }) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { resolveHomeStatus } = useAuth()
   const [consents, setConsents] = useState<Consent[]>([])
   const [decisions, setDecisions] = useState<Record<number, boolean>>({})
   const [expandedId, setExpandedId] = useState<number | null>(null)
@@ -107,32 +105,10 @@ export function ConsentStep({ childId }: { childId: string }) {
     }
   }
 
-  async function handleComplete() {
-    if (!requiredComplete) return
-    setSubmitError(null)
+  function handleComplete() {
+    if (!requiredComplete || pending) return
     setPending(true)
-
-    try {
-      const resolution = await resolveHomeStatus()
-      if (
-        resolution.status.state === 'half-onboarding-user' &&
-        resolution.status.onboardingStep === 'CONSENTS'
-      ) {
-        setAttempt((current) => current + 1)
-      }
-      if (
-        resolution.status.state === 'returning-user' &&
-        resolution.status.shouldGenerateDailyPlan
-      ) {
-        router.replace('/plan-ready')
-      } else {
-        router.replace(resolution.path)
-      }
-    } catch (cause) {
-      setSubmitError(cause)
-    } finally {
-      setPending(false)
-    }
+    router.replace('/plan-ready')
   }
 
   if (loading) {

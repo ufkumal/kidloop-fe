@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowRight, Pencil } from 'lucide-react'
@@ -12,11 +12,7 @@ import { LoadingState } from '@/components/common/loading-state'
 import { SubmitButton } from '@/components/common/submit-button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import {
-  completeQuestionnaire,
-  fetchCurrentQuestionnaire,
-  submitAnswer,
-} from '@/lib/api/onboarding'
+import { fetchCurrentQuestionnaire, submitAnswer } from '@/lib/api/onboarding'
 import { useAuth } from '@/lib/auth/auth-context'
 import type { NormalizedQuestion, QuestionnaireState } from '@/lib/types/onboarding'
 
@@ -63,10 +59,8 @@ export function QuestionnaireFlow({
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<unknown>(null)
   const [submitError, setSubmitError] = useState<unknown>(null)
-  const [completionError, setCompletionError] = useState<unknown>(null)
   const [pending, setPending] = useState(false)
   const [attempt, setAttempt] = useState(0)
-  const completionStarted = useRef(false)
 
   const completePath = `/onboarding/${encodeURIComponent(childId)}/complete`
 
@@ -133,22 +127,9 @@ export function QuestionnaireFlow({
 
   useEffect(() => {
     if (!loading && isComplete) {
-      const consentsPath = `/onboarding/${encodeURIComponent(childId)}/consents`
-      if (state?.completed) {
-        router.replace(consentsPath)
-        return
-      }
-      if (completionStarted.current) return
-      completionStarted.current = true
-      setCompletionError(null)
-      void completeQuestionnaire(childId)
-        .then(() => router.replace(consentsPath))
-        .catch((cause: unknown) => {
-          completionStarted.current = false
-          setCompletionError(cause)
-        })
+      router.replace(completePath)
     }
-  }, [loading, isComplete, router, childId, state?.completed])
+  }, [loading, isComplete, router, completePath])
 
   const retry = useCallback(() => setAttempt((current) => current + 1), [])
 
@@ -168,27 +149,10 @@ export function QuestionnaireFlow({
     try {
       // Yanıt sonrası dönen güncel durum yerel veriyi tamamen değiştirir.
       const updated = await submitAnswer(childId, currentQuestion.code, value.trim())
-      if (isEditing) {
-        setState(updated)
-        router.push(completePath)
-        return
-      }
-
-      if (updated.nextQuestionCode === null) {
-        completionStarted.current = true
-        setState(updated)
-        try {
-          await completeQuestionnaire(childId)
-          router.replace(`/onboarding/${encodeURIComponent(childId)}/consents`)
-        } catch (cause) {
-          // Son cevap kaydedildi; yalnızca completion çağrısını kullanıcı isteğiyle yeniden dene.
-          completionStarted.current = true
-          setCompletionError(cause)
-        }
-        return
-      }
-
       setState(updated)
+      if (isEditing) {
+        router.push(completePath)
+      }
     } catch (cause) {
       setSubmitError(cause)
     } finally {
@@ -248,19 +212,7 @@ export function QuestionnaireFlow({
                 onRetry={retry}
               />
             ) : !currentQuestion ? (
-              completionError ? (
-                <ApiErrorAlert
-                  error={completionError}
-                  title="Sorular tamamlanamadı"
-                  onRetry={() => {
-                    completionStarted.current = false
-                    setCompletionError(null)
-                    setAttempt((current) => current + 1)
-                  }}
-                />
-              ) : (
-                <LoadingState label="Sorular tamamlanıyor…" variant="spinner" />
-              )
+              <LoadingState label="Cevap özeti açılıyor…" variant="spinner" />
             ) : (
               <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-8">
                 <DynamicQuestionRenderer

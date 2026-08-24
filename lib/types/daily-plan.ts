@@ -40,6 +40,10 @@ export interface DailyPlanActivity {
   outcomes: DailyPlanOutcome[]
   withinBudget: boolean
   repeatNotice: boolean
+  /** Etkinliğin bugünün planından seçildiği zaman; henüz seçilmediyse null. */
+  selectedAt: string | null
+  /** Etkinliğin tamamlandığı zaman; henüz tamamlanmadıysa null. */
+  completedAt: string | null
   /** Etkinlik ebeveyn tarafından bugünün planından seçildiğinde true. */
   selected?: boolean
 }
