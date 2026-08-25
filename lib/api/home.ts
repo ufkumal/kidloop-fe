@@ -143,9 +143,15 @@ export async function fetchHomeStatus(signal?: AbortSignal): Promise<HomeStatus>
 
   const status = response as Record<string, unknown>
   if (status.state === 'new-user') {
-    return typeof status.shouldGenerateDailyPlan === 'boolean'
-      ? { state: 'new-user', shouldGenerateDailyPlan: status.shouldGenerateDailyPlan }
-      : { state: 'new-user' }
+    return {
+      state: 'new-user',
+      ...(typeof status.shouldGenerateDailyPlan === 'boolean'
+        ? { shouldGenerateDailyPlan: status.shouldGenerateDailyPlan }
+        : {}),
+      ...(typeof status.shouldListExistingPlan === 'boolean'
+        ? { shouldListExistingPlan: status.shouldListExistingPlan }
+        : {}),
+    }
   }
 
   if (status.state === 'half-onboarding-user') {
@@ -160,7 +166,8 @@ export async function fetchHomeStatus(signal?: AbortSignal): Promise<HomeStatus>
       !ONBOARDING_STEPS.includes(status.onboardingStep as OnboardingStep) ||
       !(status.nextQuestionCode == null || typeof status.nextQuestionCode === 'string') ||
       !(status.nextConsentId == null || isNumber(status.nextConsentId)) ||
-      status.shouldGenerateDailyPlan !== false
+      status.shouldGenerateDailyPlan !== false ||
+      !(status.shouldListExistingPlan == null || status.shouldListExistingPlan === false)
     ) {
       invalid(response)
     }
@@ -174,6 +181,7 @@ export async function fetchHomeStatus(signal?: AbortSignal): Promise<HomeStatus>
         typeof status.nextQuestionCode === 'string' ? status.nextQuestionCode : null,
       nextConsentId: isNumber(status.nextConsentId) ? status.nextConsentId : null,
       shouldGenerateDailyPlan: false,
+      shouldListExistingPlan: false,
     }
   }
 
@@ -182,7 +190,8 @@ export async function fetchHomeStatus(signal?: AbortSignal): Promise<HomeStatus>
     !isNumber(status.childId) ||
     typeof status.childName !== 'string' ||
     !status.childName.trim() ||
-    typeof status.shouldGenerateDailyPlan !== 'boolean'
+    typeof status.shouldGenerateDailyPlan !== 'boolean' ||
+    typeof status.shouldListExistingPlan !== 'boolean'
   ) {
     invalid(response)
   }
@@ -196,6 +205,7 @@ export async function fetchHomeStatus(signal?: AbortSignal): Promise<HomeStatus>
   if (
     status.state === 'feedback-required' &&
     status.shouldGenerateDailyPlan === false &&
+    status.shouldListExistingPlan === false &&
     latestActivity &&
     latestActivity.completedAt === null &&
     latestActivity.feedbackSubmitted === false
@@ -205,12 +215,14 @@ export async function fetchHomeStatus(signal?: AbortSignal): Promise<HomeStatus>
       childId: status.childId,
       childName: status.childName.trim(),
       shouldGenerateDailyPlan: false,
+      shouldListExistingPlan: false,
       latestActivity,
     }
   }
 
   if (
     status.state === 'returning-user' &&
+    status.shouldGenerateDailyPlan !== status.shouldListExistingPlan &&
     (!latestActivity ||
       (latestActivity.completedAt !== null &&
         latestActivity.feedbackSubmitted === true &&
@@ -221,6 +233,7 @@ export async function fetchHomeStatus(signal?: AbortSignal): Promise<HomeStatus>
       childId: status.childId,
       childName: status.childName.trim(),
       shouldGenerateDailyPlan: status.shouldGenerateDailyPlan,
+      shouldListExistingPlan: status.shouldListExistingPlan,
       latestActivity,
     }
   }
