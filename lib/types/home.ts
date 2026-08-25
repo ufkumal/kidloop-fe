@@ -51,7 +51,11 @@ export interface LatestActivity {
 }
 
 export type HomeStatus =
-  | { state: 'new-user'; shouldGenerateDailyPlan?: boolean }
+  | {
+      state: 'new-user'
+      shouldGenerateDailyPlan?: boolean
+      shouldListExistingPlan?: boolean
+    }
   | {
       state: 'half-onboarding-user'
       childId: number
@@ -61,12 +65,14 @@ export type HomeStatus =
       nextQuestionCode: string | null
       nextConsentId: number | null
       shouldGenerateDailyPlan: false
+      shouldListExistingPlan: false
     }
   | {
       state: 'feedback-required'
       childId: number
       childName: string
       shouldGenerateDailyPlan: false
+      shouldListExistingPlan: false
       latestActivity: LatestActivity
     }
   | {
@@ -74,6 +80,7 @@ export type HomeStatus =
       childId: number
       childName: string
       shouldGenerateDailyPlan: boolean
+      shouldListExistingPlan: boolean
       latestActivity: LatestActivity | null
     }
 

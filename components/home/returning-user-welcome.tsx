@@ -32,8 +32,13 @@ export function ReturningUserWelcome({
   const router = useRouter()
   const { setActiveChild } = useAuth()
   const [navigating, setNavigating] = useState(false)
-  function handleGeneratePlan() {
-    if (navigating || !status.shouldGenerateDailyPlan) return
+  function handleOpenPlan() {
+    if (
+      navigating ||
+      (!status.shouldGenerateDailyPlan && !status.shouldListExistingPlan)
+    ) {
+      return
+    }
     setNavigating(true)
     setActiveChild({ childId: String(status.childId), childName: status.childName })
     router.push('/plan-ready')
@@ -128,17 +133,21 @@ export function ReturningUserWelcome({
         <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
           {status.shouldGenerateDailyPlan
             ? 'Günlük planını aç, size uygun öneriler arasından bir etkinlik seç.'
-            : 'Bugün için yeni bir plan hazırlama zamanı henüz gelmedi.'}
+            : status.shouldListExistingPlan
+              ? 'Bugünkü planındaki diğer etkinlikleri görüntüleyebilirsin.'
+              : 'Bugün için yeni bir plan hazırlama zamanı henüz gelmedi.'}
         </p>
         <SubmitButton
           type="button"
           pending={navigating}
           pendingLabel="Plan açılıyor…"
-          disabled={!status.shouldGenerateDailyPlan}
-          onClick={handleGeneratePlan}
+          disabled={!status.shouldGenerateDailyPlan && !status.shouldListExistingPlan}
+          onClick={handleOpenPlan}
           className="mt-1 w-full sm:w-fit sm:px-6"
         >
-          Bugün için aktivite öner
+          {status.shouldListExistingPlan
+            ? 'Aktiviteleri göster'
+            : 'Bugün için aktivite öner'}
           <ArrowRight data-icon="inline-end" />
         </SubmitButton>
       </section>
