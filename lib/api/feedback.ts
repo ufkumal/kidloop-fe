@@ -12,6 +12,8 @@ const QUESTION_TYPES: FeedbackQuestionType[] = [
   'FREE_TEXT',
 ]
 
+export const MAX_FREE_TEXT_FEEDBACK_LENGTH = 500
+
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value)
 }
@@ -104,6 +106,12 @@ export async function submitActivityFeedback(
   feedbackType: ActivityFeedbackType,
   freeText?: string,
 ): Promise<void> {
+  if (freeText && freeText.length > MAX_FREE_TEXT_FEEDBACK_LENGTH) {
+    throw new RangeError(
+      `Geri bildirim en fazla ${MAX_FREE_TEXT_FEEDBACK_LENGTH} karakter olabilir.`,
+    )
+  }
+
   await apiRequest<void>(
     `/api/children/${encodeURIComponent(childId)}/daily-plan/items/${encodeURIComponent(dailyPlanItemId)}/feedback`,
     {

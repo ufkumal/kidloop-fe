@@ -9,7 +9,10 @@ import { SubmitButton } from '@/components/common/submit-button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
-import { submitActivityFeedback } from '@/lib/api/feedback'
+import {
+  MAX_FREE_TEXT_FEEDBACK_LENGTH,
+  submitActivityFeedback,
+} from '@/lib/api/feedback'
 import type {
   ActivityFeedbackType,
   FeedbackQuestion,
@@ -42,8 +45,14 @@ export function ActivityFeedbackCard({
   const enjoyment = singleChoiceQuestion ? answers[singleChoiceQuestion.code] ?? null : null
   const feedbackType = FEEDBACK_TYPES.find((type) => type === enjoyment) ?? null
   const freeText = freeTextQuestion ? answers[freeTextQuestion.code] ?? '' : ''
+  const freeTextMaxLength = Math.min(
+    freeTextQuestion?.maxLength ?? MAX_FREE_TEXT_FEEDBACK_LENGTH,
+    MAX_FREE_TEXT_FEEDBACK_LENGTH,
+  )
   const canSubmit = Boolean(
-    feedbackType && (!freeTextQuestion?.required || freeText.trim().length > 0),
+    feedbackType &&
+      freeText.length <= freeTextMaxLength &&
+      (!freeTextQuestion?.required || freeText.trim().length > 0),
   )
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -100,7 +109,7 @@ export function ActivityFeedbackCard({
                     id={`feedback-${freeTextQuestion.code}`}
                     value={freeText}
                     disabled={pending}
-                    maxLength={freeTextQuestion.maxLength ?? undefined}
+                    maxLength={freeTextMaxLength}
                     onChange={(event) =>
                       setAnswers((current) => ({
                         ...current,
