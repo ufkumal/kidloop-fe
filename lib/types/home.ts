@@ -102,9 +102,3 @@ export interface FeedbackQuestion {
   maxLength: number | null
   options: FeedbackQuestionOption[]
 }
-
-/** Sesli geri bildirim desteği eklendiğinde kullanılacak tarayıcı kaydı. */
-export interface VoiceRecordingPayload {
-  localUrl?: string
-  durationSeconds: number
-}
