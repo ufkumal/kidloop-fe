@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import type { LatestActivity } from '@/lib/types/home'
 
 const SLOT_LABELS: Record<string, string> = {
-  STRENGTHEN: 'Pekiştirme',
+  STRENGTHEN: 'Güçlendirme',
   DEVELOP: 'Gelişim',
   EXPLORE: 'Keşif',
 }
