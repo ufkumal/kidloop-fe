@@ -17,7 +17,6 @@ import type {
   ActivityFeedbackType,
   FeedbackQuestion,
   LatestActivity,
-  VoiceRecordingPayload,
 } from '@/lib/types/home'
 
 const FEEDBACK_TYPES: ActivityFeedbackType[] = ['LIKED', 'STRUGGLED', 'DISLIKED']
@@ -36,7 +35,6 @@ export function ActivityFeedbackCard({
   onSubmitted,
 }: ActivityFeedbackCardProps) {
   const [answers, setAnswers] = useState<Record<string, string>>({})
-  const [voiceRecording, setVoiceRecording] = useState<VoiceRecordingPayload | null>(null)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<unknown>(null)
 
@@ -68,6 +66,19 @@ export function ActivityFeedbackCard({
       setError(cause)
       setPending(false)
     }
+  }
+
+  function appendTranscription(transcription: string) {
+    if (!freeTextQuestion) return
+
+    setAnswers((current) => {
+      const existing = current[freeTextQuestion.code] ?? ''
+      const separator = existing.length > 0 && !/\s$/.test(existing) ? '\n\n' : ''
+      return {
+        ...current,
+        [freeTextQuestion.code]: `${existing}${separator}${transcription}`,
+      }
+    })
   }
 
   return (
@@ -120,10 +131,14 @@ export function ActivityFeedbackCard({
                     className="min-h-32 rounded-2xl border-input bg-card px-4 py-3 leading-relaxed"
                     placeholder="Deneyiminizi buraya yazabilirsiniz…"
                   />
+                  {freeText.length > freeTextMaxLength ? (
+                    <p role="alert" className="text-sm leading-relaxed text-destructive">
+                      Metin {freeTextMaxLength} karakteri geçemez. Göndermeden önce kısaltmalısın.
+                    </p>
+                  ) : null}
                 </div>
                 <VoiceFeedbackRecorder
-                  recording={voiceRecording}
-                  onRecordingChange={setVoiceRecording}
+                  onTranscription={appendTranscription}
                   disabled={pending}
                 />
               </div>
