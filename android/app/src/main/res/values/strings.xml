@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Kidloop</string>
+    <string name="title_activity_main">Kidloop</string>
+    <string name="package_name">com.kidloop.app</string>
+    <string name="custom_url_scheme">com.kidloop.app</string>
+</resources>
