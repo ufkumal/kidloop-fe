@@ -4,15 +4,65 @@
 Next.js (App Router), TypeScript, Tailwind CSS, shadcn/ui ve lucide-react ile geliştirildi.
 Tüm arayüz metinleri Türkçedir.
 
-## Kurulum
+## Gereksinimler
+
+- Node.js `20.9.0` veya üzeri
+- Corepack veya pnpm `10.34.5` (sürüm `package.json` içinde sabitlenmiştir)
+- Çalışan bir Kidloop backend adresi
+
+Kurulu sürümleri kontrol etmek için:
+
+```bash
+node --version
+corepack pnpm --version
+```
+
+`corepack` komutu bulunamazsa `npm install --global corepack@latest` ile kurabilir
+veya pnpm `10.34.5` kullanıyorsan aşağıdaki komutlardan `corepack` önekini kaldırabilirsin.
+
+## Hızlı başlangıç
 
 ```bash
 corepack pnpm install
 cp .env.example .env.local
+# .env.local içindeki değerleri kendi ortamına göre düzenle
 corepack pnpm dev
 ```
 
 Uygulama `http://localhost:3000` adresinde çalışır ve kök adres `/login` ekranına yönlenir.
+
+> `API_BASE_URL` olmadan giriş, kayıt ve onboarding gibi backend kullanan akışlar
+> çalışmaz. Örnek dosyadaki backend'i kullanmayacaksan `corepack pnpm dev` komutundan
+> önce `.env.local` içindeki adresi değiştir.
+
+## Ortam değişkenleri
+
+Yerel geliştirmede değişkenler `.env.local` dosyasından okunur. Başlangıç dosyasını
+oluşturmak için `cp .env.example .env.local` komutunu kullan. `.env.local` Git tarafından
+yok sayılır; anahtarları veya ortama özel değerleri repoya ekleme.
+
+| Değişken | Zorunluluk | Kullanım |
+| --- | --- | --- |
+| `API_BASE_URL` | Gerekli | Kidloop backend'in kök adresi. Sondaki `/` isteğe bağlıdır. Yalnızca Next.js sunucusu tarafından okunur. |
+| `GEMINI_API_KEY` | İsteğe bağlı | Ana sayfadaki sesli geri bildirimi metne dönüştürür. Tanımlı değilse uygulamanın diğer bölümleri çalışır, sesli transkripsiyon `503` döner. |
+| `NODE_ENV` | Elle tanımlama | Next.js tarafından yönetilir. Production ortamında Vercel Analytics'i etkinleştirir. |
+
+Örnek `.env.local`:
+
+```dotenv
+API_BASE_URL=https://kinloop-be.onrender.com
+# Sesli geri bildirim transkripsiyonunu kullanacaksan ekle:
+# GEMINI_API_KEY=your_gemini_api_key
+```
+
+Değişkenler sunucu tarafında okunur. Bir değeri değiştirdikten sonra geliştirme
+sunucusunu yeniden başlat; Vercel'de ise yeni bir deployment oluştur.
+
+Kod, eski kurulumlarla uyumluluk için `NEXT_PUBLIC_API_BASE_URL` değerini yedek olarak
+kabul eder. Yeni kurulumlarda bunu kullanma: `NEXT_PUBLIC_` önekli değişkenler istemci
+paketine açılabildiği için backend adresi için `API_BASE_URL` tercih edilmelidir.
+
+## Geliştirme sunucusunu başka bir cihazdan açma
 
 Aynı ağdaki başka bir cihazdan, terminalde `Network` satırında gösterilen adresi
 (örneğin `http://172.20.10.4:3000`) açabilirsin. `next.config.mjs`, Mac'in güncel
@@ -29,16 +79,6 @@ istemcisi yüklenmemiş demektir. Şunları kontrol et:
 
 Normal akışta giriş ve kayıt istekleri tarayıcıdan same-origin
 `/api/backend/...` adresine `POST` olarak gider; adres çubuğuna parola yazılmaz.
-
-### `.env.local`
-
-```bash
-API_BASE_URL=https://kinloop-be.onrender.com
-```
-
-Backend adresi kod içinde sabitlenmez. Tarayıcı istekleri same-origin
-`/api/backend` proxy'sine gider; gerçek backend adresini yalnızca sunucu tarafındaki
-`app/api/backend/[...path]/route.ts` bu değişkenden okur.
 
 ## Klasör yapısı
 
@@ -132,17 +172,22 @@ depoya gönderilmez.
 1. Vercel'de **New Project** → GitHub deposunu içe aktar.
 2. Framework otomatik olarak Next.js algılanır; ek yapılandırma gerekmez.
 3. **Settings → Environment Variables** bölümüne `API_BASE_URL` değerini
-   Production, Preview ve Development ortamları için ekle.
+   Production, Preview ve Development ortamları için ekle. Sesli transkripsiyon
+   kullanılacaksa `GEMINI_API_KEY` değerini de ekle.
 4. **Deploy**. Sonraki her `main` push'u production, diğer dallar preview dağıtımı üretir.
-
-> `API_BASE_URL` yalnızca sunucu tarafında okunur. Değeri değiştirdikten sonra
-> uygulamayı yeniden başlatmak veya Vercel deployment'ını yeniden oluşturmak gerekir.
 
 ## Komutlar
 
 ```bash
-pnpm dev      # geliştirme sunucusu
-pnpm build    # üretim derlemesi
-pnpm start    # derlenmiş uygulamayı çalıştır
-pnpm lint     # lint kontrolü
+corepack pnpm dev      # geliştirme sunucusu
+corepack pnpm build    # üretim derlemesi
+corepack pnpm start    # üretim derlemesini çalıştır (önce build gerekir)
+corepack pnpm test     # Node testlerini çalıştır
+```
+
+Üretim modunu yerelde denemek için:
+
+```bash
+corepack pnpm build
+corepack pnpm start
 ```
