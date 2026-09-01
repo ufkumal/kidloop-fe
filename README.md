@@ -7,7 +7,7 @@ Tüm arayüz metinleri Türkçedir.
 ## Gereksinimler
 
 - Node.js `20.9.0` veya üzeri
-- Corepack (Node.js ile birlikte gelir ve projedeki pnpm sürümünü etkinleştirir)
+- Corepack veya pnpm `10.34.5` (sürüm `package.json` içinde sabitlenmiştir)
 - Çalışan bir Kidloop backend adresi
 
 Kurulu sürümleri kontrol etmek için:
@@ -16,6 +16,9 @@ Kurulu sürümleri kontrol etmek için:
 node --version
 corepack pnpm --version
 ```
+
+`corepack` komutu bulunamazsa `npm install --global corepack@latest` ile kurabilir
+veya pnpm `10.34.5` kullanıyorsan aşağıdaki komutlardan `corepack` önekini kaldırabilirsin.
 
 ## Hızlı başlangıç
 
@@ -179,7 +182,6 @@ depoya gönderilmez.
 corepack pnpm dev      # geliştirme sunucusu
 corepack pnpm build    # üretim derlemesi
 corepack pnpm start    # üretim derlemesini çalıştır (önce build gerekir)
-corepack pnpm lint     # ESLint kontrolü
 corepack pnpm test     # Node testlerini çalıştır
 ```
 
